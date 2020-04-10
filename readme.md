@@ -19,6 +19,10 @@ Very much a work in progress currently.
 * Enable Kubernetes within the Docker settings
 * .NET Core 3.1 SDK
 
+### Running it
+* In `src/Deployment`, `dotnet run`
+* In `src/Cli`, `dotnet run -- deploy`
+
 ### Optional IDE setup
 Assuming using Rider:
 * Install https://plugins.jetbrains.com/plugin/8277-protobuf-support
