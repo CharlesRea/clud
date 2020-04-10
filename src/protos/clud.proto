@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option csharp_namespace = "Clud";
+
+service Pods {
+  rpc ListPods (PodsRequest) returns (PodsReply);
+}
+
+message PodsRequest {
+}
+
+message PodsReply {
+  message Pod {
+    string name = 1;
+  }
+
+  repeated Pod pods = 1;
+}
