@@ -16,3 +16,14 @@ message PodsReply {
 
   repeated Pod pods = 1;
 }
+
+service Deployments {
+  rpc CreateDeployment (CreateDeploymentRequest) returns (CreateDeploymentResponse);
+}
+
+message CreateDeploymentRequest {
+  string name = 1;
+}
+
+message CreateDeploymentResponse {
+}

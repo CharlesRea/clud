@@ -19,6 +19,7 @@ namespace Clud.Cli
 
             command.Add(DeployCommand());
 
+            command.Name = "clud";
             command.Description = "Clud deployment tool";
 
             // Show commandline help unless a subcommand was used.
@@ -27,9 +28,6 @@ namespace Clud.Cli
                 help.Write(command);
                 return 1;
             });
-
-            command.Name = "clud";
-
 
             var builder = new CommandLineBuilder(command);
             builder.UseHelp();
@@ -40,8 +38,6 @@ namespace Clud.Cli
 
             builder.CancelOnProcessTermination();
             builder.UseExceptionHandler(HandleException);
-
-
 
             var parser = builder.Build();
             return await parser.InvokeAsync(args);
@@ -61,12 +57,13 @@ namespace Clud.Cli
 
             command.Handler = CommandHandler.Create<IConsole, string>(async (console, configPath) =>
             {
-                var channel = GrpcChannel.ForAddress("https://localhost:5001");
-                var client = new Pods.PodsClient(channel);
-                var pods = await client.ListPodsAsync(new PodsRequest());
+                using var channel = GrpcChannel.ForAddress("https://localhost:5001");
+                var client = new Deployments.DeploymentsClient(channel);
 
-                console.Out.Write("Pods:" + Environment.NewLine + string.Join<string>(Environment.NewLine, pods.Pods.Select(pod => "\t" + pod.Name)));
+                var deploymentName = "test-deployment";
+                await client.CreateDeploymentAsync(new CreateDeploymentRequest { Name = deploymentName });
 
+                console.Out.Write($"Created deployment named {deploymentName}");
                 return 0;
             });
 
@@ -79,6 +76,13 @@ namespace Clud.Cli
             Console.ForegroundColor = ConsoleColor.Red;
             context.Console.Error.WriteLine("Uh oh, something failed. Badly.");
             context.Console.Error.WriteLine(exception.ToString());
+
+            while (exception.InnerException != null)
+            {
+                exception = exception.InnerException;
+                context.Console.Error.WriteLine("Inner exception:");
+                context.Console.Error.WriteLine(exception.ToString());
+            }
 
             Console.ResetColor();
 

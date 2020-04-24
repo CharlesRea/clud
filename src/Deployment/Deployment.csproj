@@ -11,6 +11,8 @@
 
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" Version="2.24.0" />
+    <PackageReference Include="KubeClient" Version="2.3.11" />
+    <PackageReference Include="KubeClient.Extensions.KubeConfig" Version="2.3.11" />
     <PackageReference Include="KubernetesClient" Version="1.6.35" />
   </ItemGroup>
 
