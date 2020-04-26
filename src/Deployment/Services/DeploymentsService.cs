@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Core;
 using KubeClient;
@@ -19,32 +20,105 @@ namespace Clud.Deployment.Services
 
         public override async Task<CreateDeploymentResponse> CreateDeployment(CreateDeploymentRequest request, ServerCallContext context)
         {
+            const string kubeNamespace = "default";
+
             var kubeClientOptions = K8sConfig.Load().ToKubeClientOptions();
-            kubeClientOptions.KubeNamespace = "default";
+            kubeClientOptions.KubeNamespace = kubeNamespace;
             kubeClientOptions.LoggerFactory = loggerFactory;
             var client = KubeApiClient.Create(kubeClientOptions);
 
-            var pod = new PodV1
+            var deployment = new DeploymentV1
             {
                 Metadata = new ObjectMetaV1
                 {
                     Name = request.Name,
-                    Namespace = "default",
+                    Namespace = kubeNamespace,
                 },
-                Spec = new PodSpecV1
+                Spec = new DeploymentSpecV1
                 {
-                    Containers =
+                    Selector = new LabelSelectorV1
                     {
-                        new ContainerV1
+                        MatchLabels = {{ "App", request.Name }},
+                    },
+                    Template = new PodTemplateSpecV1
+                    {
+                        Metadata = new ObjectMetaV1
                         {
-                            Name = "helloworld",
-                            Image = "zerokoll/helloworld",
+                            Name = request.Name,
+                            Namespace = kubeNamespace,
+                            Labels = {{ "App", request.Name }}
+                        },
+                        Spec = new PodSpecV1
+                        {
+                            Containers =
+                            {
+                                new ContainerV1
+                                {
+                                    Name = "helloworld",
+                                    Image = "zerokoll/helloworld",
+                                }
+                            }
                         }
                     }
                 }
             };
 
-            await client.Dynamic().Apply(pod, fieldManager: "clud", force: true);
+            await client.Dynamic().Apply(deployment, fieldManager: "clud", force: true);
+
+            var service = new ServiceV1
+            {
+                Metadata = new ObjectMetaV1
+                {
+                    Name = request.Name,
+                    Namespace = kubeNamespace,
+                },
+                Spec = new ServiceSpecV1
+                {
+                    Selector = {{ "App", deployment.Spec.Template.Metadata.Labels["App"] }},
+                    Ports =
+                    {
+                        new ServicePortV1 { Name = "web", Port = 80, TargetPort = 80, Protocol = "TCP", }
+                    }
+                },
+            };
+
+            await client.Dynamic().Apply(service, fieldManager: "clud", force: true);
+
+            var ingress = new IngressV1Beta1
+            {
+                Metadata = new ObjectMetaV1
+                {
+                    Name = request.Name,
+                    Namespace = kubeNamespace,
+                },
+                Spec = new IngressSpecV1Beta1
+                {
+                    Rules =
+                    {
+                        new IngressRuleV1Beta1
+                        {
+                            Host = $"{request.Name}.minikube",
+                            Http = new HTTPIngressRuleValueV1Beta1
+                            {
+                                Paths =
+                                {
+                                    new HTTPIngressPathV1Beta1
+                                    {
+                                        Path = "/",
+                                        Backend = new IngressBackendV1Beta1
+                                        {
+                                            ServiceName = service.Metadata.Name,
+                                            ServicePort = service.Spec.Ports.Single().Name,
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+            };
+
+            await client.Dynamic().Apply(ingress, fieldManager: "clud", force: true);
 
             return new CreateDeploymentResponse();
         }
