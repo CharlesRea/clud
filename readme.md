@@ -39,11 +39,25 @@ be possible to install on Linux, but some tweaks may be needed.
   * `kubectl -n kube-system create secret tls traefik-tls-cert --key=tls.key --cert=tls.crt`
   * Trust the certificate. In Windows, double click the `tls.crt` file, click Install Certificate, choose Local Machine, choose
     "Place all certs in the following store", choose "Trusted Root Certification Authorities".
-* Run `minikube ip` to get the Minikube IP.
-* Add a hosts file entry for `<minikube-ip> traefik.clud`
-* Check you can access http://traefik.clud and https://traefik.clud.
-* QQ WIP:
-  * Install Docker registry Helm chart: `helm install docker-registry stable/docker-registry`
+* Add hosts file entries:
+  * Run `minikube ip` to get the Minikube IP.
+  * Add a hosts file entry for `<minikube-ip> clud traefik.clud`
+  * Check you can access http://traefik.clud,  https://traefik.clud and https://registry.clud/v2/_catalog.
+* Setup the Docker registry, using Minikube's built in registry addon:
+  * `minikube addons enable registry`
+<!-- TODO Investigate if there's a nicer way to do this -->
+* Unfortunately, on Windows, our local Docker engine cannot directly talk to Minikube (as they're in different HyperV
+  containers). So we need to expose the registry to our local network with `kubectl port-forward`, and then create a
+  Docker image to proxy the network call within the Docker engine back to our host network. (Instructions taken from the 
+  [Minikube docs](https://minikube.sigs.k8s.io/docs/handbook/registry/))
+  * Run `kubectl get pod -n kube-system` to get the registry pod (should be called `registry-XXXX`)
+  * `kubectl port-forward --namespace kube-system <registry-pod-name> 5002:5000`
+  * `docker run --rm -it --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5002,reuseaddr,fork TCP:host.docker.internal:5002"`
+  * Create a hostsfile entry: `127.0.0.1 registry.clud`
+  * To test this worked succesfully:
+    * `docker pull zerokoll/helloworld`
+    * `docker tag zerokoll/helloworld  registry.clud:5002/zorokoll/helloworld`
+    * `docker push registry.clud:5002/zorokoll/helloworld`
 
 ### Running Clud
 * In `src/Deployment`, `dotnet run`
