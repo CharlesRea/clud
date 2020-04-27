@@ -75,6 +75,9 @@ spec:
         - name: http
           containerPort: 80
           hostPort: 80
+        - name: https
+          containerPort: 443
+          hostPort: 443
         - name: admin
           containerPort: 8080
           hostPort: 8080
@@ -88,6 +91,9 @@ spec:
         - --api
         - --kubernetes
         - --logLevel=INFO
+        - --defaultentrypoints=http,https
+        - --entrypoints=Name:https Address::443 TLS
+        - --entrypoints=Name:http Address::80
 ---
 kind: Service
 apiVersion: v1
@@ -125,10 +131,12 @@ metadata:
   namespace: kube-system
 spec:
   rules:
-  - host: traefik-ui.minikube
+  - host: traefik.clud
     http:
       paths:
       - path: /
         backend:
           serviceName: traefik-web-ui
           servicePort: web
+  tls:
+   - secretName: traefik-tls-cert

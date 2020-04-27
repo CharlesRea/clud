@@ -1,3 +1,8 @@
+# Clud specific files
+
+tls.crt
+tls.key
+
 # Common IntelliJ Platform excludes
 
 # User specific

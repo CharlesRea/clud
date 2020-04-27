@@ -97,7 +97,7 @@ namespace Clud.Deployment.Services
                     {
                         new IngressRuleV1Beta1
                         {
-                            Host = $"{request.Name}.minikube",
+                            Host = $"{request.Name}.clud",
                             Http = new HTTPIngressRuleValueV1Beta1
                             {
                                 Paths =
@@ -114,7 +114,14 @@ namespace Clud.Deployment.Services
                                 }
                             }
                         }
-                    }
+                    },
+                    // TODO Traefik doesn't pick up the Ingress rule if the TLS entry is defined. However it works
+                    // fine since apparently Traefik just registeres the Traefik-UI ingress rule to apply to every
+                    // endpoint, and since the cert is a wildcard cert this continues to be accessible over HTTPS...
+                    // Tls =
+                    // {
+                    //     new IngressTLSV1Beta1 { SecretName = "traefik-tls-cert" },
+                    // }
                 },
             };
 
