@@ -42,7 +42,7 @@ be possible to install on Linux, but some tweaks may be needed.
 * Add hosts file entries:
   * Run `minikube ip` to get the Minikube IP.
   * Add a hosts file entry for `<minikube-ip> clud traefik.clud`
-  * Check you can access http://traefik.clud,  https://traefik.clud and https://registry.clud/v2/_catalog.
+  * Check you can access http://traefik.clud,  https://traefik.clud
 * Setup the Docker registry, using Minikube's built in registry addon:
   * `minikube addons enable registry`
 <!-- TODO Investigate if there's a nicer way to do this -->
