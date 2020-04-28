@@ -18,7 +18,7 @@ be possible to install on Linux, but some tweaks may be needed.
 ### Install Prerequisites:
 * A local Kubernetes cluster, version 1.18+. 
   * The recommended way to set this up is to use [minikube](https://minikube.sigs.k8s.io/docs/start/).
-    On Windows, we use the HyperV Minikube driver. Install minikube and [Docker](https://docs.docker.com/get-docker/), 
+    On Windows, we use the HyperV Minikube driver. Install minikube (`choco install minikube`) and [Docker](https://docs.docker.com/get-docker/), 
     and run `minikube start --driver=hyperv` in an admin terminal.
   * Note that as of April 2020, we cannot use the Kubernetes built into Docker Desktop,
     since it is an older version (1.14).
