@@ -1,7 +1,7 @@
 # Clud Design Specification
 
 Clud is a tool to provide pain-free deployment and infrastructure management for small projects.
-It's intended to be used within Ghyston to allow devs to easily host their side proejcts, but could
+It's intended to be used within Ghyston to allow devs to easily host their side projects, but could
 be run in any company / on the cloud.
 
 It was also the result of several drunken conversations at the NDC London 2020 conference. This document
@@ -65,9 +65,8 @@ new techs.
 
 Clud consists of the following:
 * A CLI tool, which allows deploying an application to the Clud infrastructure. Written in C#.
-* A management web service, to view and manage details for the deployed applications. Written in Blazor.
-* A deployment service, responsible for actually getting applications deployed and running. (QQ - we could
-  probably merge this with the web service, but do we actually want to? That sounds boring and not very fun)
+* A management web application, to view and manage details for the deployed applications. Written in Blazor.
+* A deployment service, responsible for actually getting applications deployed and running.
 * A Kubernetes cluster, responsible for running the actual applications
 * A container registry, holding Docker images
 
@@ -92,24 +91,27 @@ file for that.
 projects and uploads them to the container registry. Then talks to the deployment service to kick
 off the deployment.
 
-`clud local` - Runs your application locally. This probably relies on you having k8s set up locally.
+`clud local` - Runs your application locally. This relies on you having k8s set up locally.
 (QQ this command needs a better name). Should expose a way to skip running one component - e.g.
 `--skip web`. This lets you run every component except your main project, which you may want to run
 more explicitly through your IDE / standard development tools, for a better development experience
 (e.g. through `dotnet watch run`).
 
+`clud eject <serviceName>` - Takes a service definition pointing at a project file, and ejects the
+configuration to produce a customisable Dockerfile. This allows making manual edits to the
+deployment process assumed by Clud.
 
 ### Service configuration
 The CLI will look for a `clud.yml` file sitting in the project root, with the schema:
 
 ```yml
 name: applicationName
-services:
-  web: # Rather than a map, we could just have an array and add name property.
+services: # Rather than a map, we could just have an array and add name property.
+  web: # Services are exposed to each other as DNS names - i.e. this service is accessible from other services using the hostname 'web'
     project: ./src/Web/Web.csproj # Clud knows how to turn this into a Docker image.
     replicas: 2 # optional, defaults to 1
     ports:
-      - port: 80 # Expose port 80 
+      - port: 80 # Expose port 80
       - port: 8080 # Publically expose port 80, mapping internally to port 8081
         targetPort: 8081
     env: # Map of environment variables to supply to the image
@@ -122,9 +124,11 @@ services:
     dockerImage: postgresql # Use a prebuilt Docker image, from the Docker registry
     ports:
       - port: 5432
+    expose: false # Expose an Ingress endpoint for public access. Defaults to true
+entryPoint: web # The main entry point for the app, accessible externally at applicationName.clud
 ```
 
-### Management web service
+### Management web application
 A web app, allowing general management of applications. A Blazor web site - I think
 we can probably get away without having much of a backend here, it'll just talk directly
 to the deployment service.
@@ -137,18 +141,24 @@ Functionality includes:
   using correlation IDs for distributed tracing maybe?
 * Delete an application
 
-
 ### Deployment service
 The core service. Responsible for handling deployment requests, talking to Kubernetes, etc.
 
 ASP.NET Core web service. Exposes GRPC endpoints, which the CLI and management web service talk
 to. Has a DB for actually storing application details.
 
-We may well want this to push updates to the management service, to allow streaming log data as
-it comes in etc.
-
 ### Kubernetes cluster
-We'll need Traefik or similar set up here for handling DNS mapping to individual services.
+A Kubernetes cluster, set up with:
+* [Traefik](https://docs.traefik.io/) - An ingress service. This will handle routing external
+  requests from outside the cluster to the correct service. Each deployed service in an app will
+  be accessible at `service.appName.clud`. An entry service can be defined, so that it is accessible
+  at `appName.clud`.
+* A Docker registry - storing the Docker images.
+
+Internally, a Clud application maps to Kubernetes primitives as follows:
+* A separate namespace is set up for each application
+* For each Clud service, a Kubernetes deployment is set up, running a pod. A Kubernetes service points
+  at the pod, and optionally an ingress rule exposes the service externally.
 
 ## Things we need to figure out
 * Volume mapping, so that DB images can have data persisted between deployments

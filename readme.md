@@ -61,6 +61,8 @@ be possible to install on Linux, but some tweaks may be needed.
 
 ### Running Clud
 * In `src/Deployment`, `dotnet run`
+
+### Test a deployment
 * In `src/Cli`, `dotnet run -- deploy`
 
 ### Optional IDE setup & tooling
