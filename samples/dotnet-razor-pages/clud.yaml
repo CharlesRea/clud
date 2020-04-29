@@ -1,0 +1,6 @@
+name: myApplication
+dockerfile: ./dockerfile
+port: 80
+owner: Alex and Charles
+description: A really good example of how awesome Clud is
+repository: github.com/CharlesRea/clud
