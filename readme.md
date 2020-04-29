@@ -32,20 +32,21 @@ Have a readthrough of the [Design Spec](./docs/01_DesignSpec.md) to understand t
 * [.NET Core 3.1 SDK](https://dotnet.microsoft.com/download)
 
 ### Infrastructure setup
+* Clone the repository
 * Run `kubectl apply -f infrastructure/traefik.yaml`
   * [Traefik](https://docs.traefik.io/) is a reverse proxy service. All external requests to the cluster will arrive at
     Traefik, which will route the traffic to the correct Kubernetes service based on the request hostname. In Kubernetes
     terms, it's an Ingress controller)
 * Run `kubectl apply -f infrastructure/postgres.yaml`
-* Setup a self-signed certificate, and add it as a Kubernetes secret:
+* Setup a self-signed certificate, and add it as a Kubernetes secret (you might need to run the following commands in Git Bash or equivalent)
   * `openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=*.clud"`
   * `kubectl -n kube-system create secret tls traefik-tls-cert --key=tls.key --cert=tls.crt`
   * Trust the certificate. In Windows, double click the `tls.crt` file, click Install Certificate, choose Local Machine, choose
     "Place all certs in the following store", choose "Trusted Root Certification Authorities".
 * Add hosts file entries:
-  * Run `minikube ip` to get the Minikube IP.
+  * In an admin terminal run `minikube ip` to get the Minikube IP
   * Add a hosts file entry for `<minikube-ip> clud traefik.clud postgres.clud`
-  * Check you can access http://traefik.clud,  https://traefik.clud
+  * Check you can access http://traefik.clud,  https://traefik.clud (you may get a security warning as modern browsers don't like self-signed certificates - just click through)
 * Setup the Docker registry, using Minikube's built in registry addon:
   * `minikube addons enable registry`
 <!-- TODO Investigate if there's a nicer way to do this -->
@@ -54,8 +55,8 @@ Have a readthrough of the [Design Spec](./docs/01_DesignSpec.md) to understand t
   Docker image to proxy the network call within the Docker engine back to our host network. (Instructions taken from the 
   [Minikube docs](https://minikube.sigs.k8s.io/docs/handbook/registry/))
   * Run `kubectl get pod -n kube-system` to get the registry pod (should be called `registry-XXXX`)
-  * `kubectl port-forward --namespace kube-system <registry-pod-name> 5002:5000`
-  * `docker run --rm -it --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5002,reuseaddr,fork TCP:host.docker.internal:5002"`
+  * Run the following (and keep it running): `kubectl port-forward --namespace kube-system <registry-pod-name> 5002:5000`
+  * Run the following (and keep it running): `docker run --rm -it --network=host alpine ash -c "apk add socat && socat TCP-LISTEN:5002,reuseaddr,fork TCP:host.docker.internal:5002"`
   * Create a hostsfile entry: `127.0.0.1 registry.clud`
   * To test this worked succesfully:
     * `docker pull zerokoll/helloworld`

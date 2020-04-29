@@ -25,6 +25,8 @@ namespace Clud.Api.Services
 
         public override async Task<CreateDeploymentResponse> CreateDeployment(CreateDeploymentRequest request, ServerCallContext context)
         {
+            logger.LogInformation($"Received request {request.Name} / {request.DockerImage} / {request.Port}");
+
             const string kubeNamespace = "default";
 
             var kubeClientOptions = K8sConfig.Load().ToKubeClientOptions();
@@ -59,8 +61,8 @@ namespace Clud.Api.Services
                             {
                                 new ContainerV1
                                 {
-                                    Name = "helloworld",
-                                    Image = "zerokoll/helloworld",
+                                    Name = request.Name,
+                                    Image = $"localhost:5000/{request.DockerImage}",
                                 }
                             }
                         }
@@ -82,7 +84,14 @@ namespace Clud.Api.Services
                     Selector = {{ "App", deployment.Spec.Template.Metadata.Labels["App"] }},
                     Ports =
                     {
-                        new ServicePortV1 { Name = "web", Port = 80, TargetPort = 80, Protocol = "TCP", }
+                        // TODO - Allow multiple port bindings
+                        new ServicePortV1
+                        {
+                            Name = "default",
+                            Protocol = "TCP",
+                            Port = request.Port, // This is the inbound port on the Service
+                            TargetPort = request.Port, // This is the inbound port on the Pod (i.e. the underlying application)
+                        }
                     }
                 },
             };
