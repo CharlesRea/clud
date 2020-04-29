@@ -4,7 +4,7 @@ using Grpc.Core;
 using k8s;
 using Microsoft.Extensions.Logging;
 
-namespace Clud.Deployment.Services
+namespace Clud.Api.Services
 {
     public class PodsService : Pods.PodsBase
     {

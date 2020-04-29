@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 
-namespace Clud.Deployment
+namespace Clud.Api
 {
     public class Program
     {

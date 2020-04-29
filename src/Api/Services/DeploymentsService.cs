@@ -5,7 +5,7 @@ using KubeClient;
 using KubeClient.Models;
 using Microsoft.Extensions.Logging;
 
-namespace Clud.Deployment.Services
+namespace Clud.Api.Services
 {
     public class DeploymentsService : Deployments.DeploymentsBase
     {

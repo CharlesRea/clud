@@ -1,11 +1,10 @@
-﻿using Clud.Deployment.Services;
+﻿using Clud.Api.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Clud.Deployment
+namespace Clud.Api
 {
     public class Startup
     {

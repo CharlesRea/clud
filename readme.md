@@ -62,7 +62,7 @@ Have a readthrough of the [Design Spec](./docs/01_DesignSpec.md) to understand t
     * `docker push registry.clud:5002/zorokoll/helloworld`
 
 ### Running Clud
-* In `src/Deployment`, `dotnet run`
+* In `src/Api`, `dotnet watch run`
 
 ### Test a deployment
 * In `src/Cli`, `dotnet run -- deploy`
