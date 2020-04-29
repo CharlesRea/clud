@@ -102,12 +102,12 @@ spec:
     singular: traefikservice
   scope: Namespaced
 
-
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: traefik-ingress-controller
+
 rules:
   - apiGroups:
       - ""
@@ -128,38 +128,57 @@ rules:
       - list
       - watch
   - apiGroups:
-    - extensions
+      - extensions
     resources:
-    - ingresses/status
+      - ingresses/status
     verbs:
-    - update
+      - update
+  - apiGroups:
+      - traefik.containo.us
+    resources:
+      - middlewares
+      - ingressroutes
+      - traefikservices
+      - ingressroutetcps
+      - ingressrouteudps
+      - tlsoptions
+      - tlsstores
+    verbs:
+      - get
+      - list
+      - watch
+
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: traefik-ingress-controller
+
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: traefik-ingress-controller
 subjects:
-- kind: ServiceAccount
-  name: traefik-ingress-controller
-  namespace: kube-system
+  - kind: ServiceAccount
+    name: traefik-ingress-controller
+    namespace: traefik-manual
+
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  namespace: traefik-manual
   name: traefik-ingress-controller
-  namespace: kube-system
+
 ---
 kind: DaemonSet
 apiVersion: apps/v1
 metadata:
+  namespace: traefik-manual
   name: traefik-ingress-controller
-  namespace: kube-system
   labels:
     k8s-app: traefik-ingress-lb
+
 spec:
   selector:
     matchLabels:
@@ -174,59 +193,58 @@ spec:
       serviceAccountName: traefik-ingress-controller
       terminationGracePeriodSeconds: 60
       containers:
-      - image: traefik:v2.2
-        name: traefik-ingress-lb
-        ports:
-        - name: http
-          containerPort: 80
-          hostPort: 80
-        - name: https
-          containerPort: 443
-          hostPort: 443
-        - name: admin
-          containerPort: 8080
-          hostPort: 8080
-        - name: tcp
-          containerPort: 8050
-          hostPort: 8050
-        securityContext:
-          capabilities:
-            drop:
-            - ALL
-            add:
-            - NET_BIND_SERVICE
-        args:
-        - --api
-        - --api.dashboard=true
-        - --api.insecure
-        - --ping=true
-        - --entrypoints.http.Address=:80
-        - --entrypoints.https.Address=:443
-        - --entryPoints.https.http.tls=true
-        - --entrypoints.tcp.Address=:8050
-        - --providers.kubernetesingress
+        - name: traefik
+          image: traefik:v2.2
+          args:
+            - --api.dashboard=true
+            - --api.insecure
+            - --ping=true
+            - --entrypoints.web.Address=:80
+            # - --entrypoints.websecure.Address=:4443
+            - --providers.kubernetescrd
+            - --providers.kubernetesingress
+          ports:
+            - name: web
+              containerPort: 80
+            # - name: websecure
+            #   containerPort: 443
+            - name: admin
+              containerPort: 8080
+          securityContext:
+            capabilities:
+              drop:
+              - ALL
+              add:
+              - NET_BIND_SERVICE
+
 ---
-kind: Service
 apiVersion: v1
+kind: Service
 metadata:
   name: traefik-ingress-service
-  namespace: kube-system
+  namespace: traefik-manual
+
 spec:
-  selector:
-    k8s-app: traefik-ingress-lb
   ports:
     - protocol: TCP
-      port: 80
       name: web
+      port: 80
     - protocol: TCP
-      port: 8080
       name: admin
+      port: 8080
+    # - protocol: TCP
+    #   name: websecure
+    #   port: 443
+  selector:
+    k8s-app: traefik-ingress-lb
+
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: traefik-web-ui
-  namespace: kube-system
+  namespace: traefik-manual
 spec:
   selector:
     k8s-app: traefik-ingress-lb
@@ -234,6 +252,7 @@ spec:
   - name: web
     port: 80
     targetPort: 8080
+
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress
@@ -251,3 +270,36 @@ spec:
           servicePort: web
   tls:
    - secretName: traefik-tls-cert
+
+# apiVersion: traefik.containo.us/v1alpha1
+# kind: IngressRoute
+# metadata:
+#   name: traefik-web-ui
+#   namespace: traefik-manual
+# spec:
+#   entryPoints:
+#     - web
+#   routes:
+#   - match: Host(`traefik.clud`)
+#     kind: Rule
+#     services:
+#     - name: traefik-web-ui
+#       port: 80
+
+# ---
+# apiVersion: traefik.containo.us/v1alpha1
+# kind: IngressRoute
+# metadata:
+#   name: traefik-web-ui-tls
+#   namespace: traefik-manual
+# spec:
+#   entryPoints:
+#     - websecure
+#   routes:
+#   - match: Host(`traefik.clud`)
+#     kind: Rule
+#     services:
+#     - name: traefik-web-ui
+#       port: 80
+#   tls:
+#     secretName: traefik-tls-cert

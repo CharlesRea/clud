@@ -12,3 +12,19 @@ message CreateDeploymentRequest {
 
 message CreateDeploymentResponse {
 }
+
+service Applications {
+  rpc ListApplications (ListApplicationsRequest) returns (ListApplicationsResponse);
+}
+
+message ListApplicationsRequest {
+}
+
+message ListApplicationsResponse {
+  message Application {
+    int32 applicationId = 1;
+    string name = 2;
+  }
+
+  repeated Application applications = 1;
+}

@@ -1,20 +1,24 @@
 using System.Linq;
 using System.Threading.Tasks;
+using Clud.Api.Infrastructure.DataAccess;
 using Clud.Grpc;
 using Grpc.Core;
 using KubeClient;
 using KubeClient.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Clud.Api.Services
 {
     public class DeploymentsService : Deployments.DeploymentsBase
     {
+        private readonly DataContext dataContext;
         private readonly ILogger<DeploymentsService> logger;
         private readonly ILoggerFactory loggerFactory;
 
-        public DeploymentsService(ILogger<DeploymentsService> logger, ILoggerFactory loggerFactory)
+        public DeploymentsService(DataContext dataContext, ILogger<DeploymentsService> logger, ILoggerFactory loggerFactory)
         {
+            this.dataContext = dataContext;
             this.logger = logger;
             this.loggerFactory = loggerFactory;
         }
@@ -127,6 +131,13 @@ namespace Clud.Api.Services
             };
 
             await client.Dynamic().Apply(ingress, fieldManager: "clud", force: true);
+
+            var existingApplication = await dataContext.Applications.SingleOrDefaultAsync(a => a.Name == request.Name);
+            if (existingApplication == null)
+            {
+                dataContext.Applications.Add(new Application(request.Name));
+                await dataContext.SaveChangesAsync();
+            }
 
             return new CreateDeploymentResponse();
         }
