@@ -1,6 +1,5 @@
 syntax = "proto3";
 
-import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
 option csharp_namespace = "Clud.Grpc";
@@ -12,7 +11,8 @@ service Deployments {
 message CreateDeploymentRequest {
   string name = 1;
   string dockerImage = 2;
-  int32 port = 3;
+  bool isPublicDockerImage = 3;
+  int32 port = 4;
 }
 
 message CreateDeploymentResponse {

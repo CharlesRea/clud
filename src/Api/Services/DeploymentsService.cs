@@ -16,6 +16,8 @@ namespace Clud.Api.Services
         private readonly KubeApiClient kubeApiClient;
         private readonly ILogger<DeploymentsService> logger;
 
+        private const string DockerImageRegistryLocation = "localhost:5000";
+
         public DeploymentsService(DataContext dataContext, KubeApiClient kubeApiClient, ILogger<DeploymentsService> logger)
         {
             this.dataContext = dataContext;
@@ -67,7 +69,9 @@ namespace Clud.Api.Services
                                 new ContainerV1
                                 {
                                     Name = request.Name,
-                                    Image = $"localhost:5000/{request.DockerImage}",
+                                    Image = request.IsPublicDockerImage
+                                        ? request.DockerImage
+                                        : $"{DockerImageRegistryLocation}/{request.DockerImage}",
                                 }
                             }
                         }

@@ -114,11 +114,21 @@ namespace Clud.Cli
 
             command.Handler = CommandHandler.Create<IConsole, string>(async (console, config) =>
             {
-                Console.Out.WriteLine($"Attempting to read configuration from '{config}' ...");
+                Console.Out.Write(@"       _             _     
+  ___ | | _   _   __| |       __   _
+ / __|| || | | | / _` |     _(  )_( )_
+| (__ | || |_| || (_| |    (_   _    _)
+ \___||_| \__,_| \__,_|      (_) (__)
+");
+                Console.Out.WriteLine();
+
+                Console.Out.WriteLine();
+
+                Console.Out.WriteLine("Attempting to read configuration file ...");
 
                 if (!File.Exists(config))
                 {
-                    throw new Exception($"Could not locate configuration file '{config}'");
+                    throw new Exception("Could not locate configuration file");
                 }
 
                 await using var fileStream = File.OpenRead(config);
@@ -131,7 +141,11 @@ namespace Clud.Cli
                     throw new Exception($"Invalid configuration file.\r\n{string.Join("\r\n", validationErrors.Select(error => " - " + error))}");
                 }
 
+                WriteSuccess("Configuration file was read successfully.");
+                Console.Out.WriteLine();
+
                 string dockerImage = null;
+                var isPublicDockerImage = false;
 
                 if (!string.IsNullOrEmpty(parsedConfig.Project))
                 {
@@ -139,15 +153,23 @@ namespace Clud.Cli
                 }
                 if (!string.IsNullOrEmpty(parsedConfig.Dockerfile))
                 {
+                    Console.Out.WriteLine("The 'dockerfile' option was detected - an image will be built and pushed to the remote registry.");
+
+                    Console.Out.WriteLine();
+                    Console.Out.WriteLine("Attempting to locate Dockerfile ...");
+
                     var configFileDirectory = Directory.GetParent(config).FullName;
                     var dockerfilePath = Path.GetFullPath(parsedConfig.Dockerfile, configFileDirectory);
 
                     if (!File.Exists(dockerfilePath))
                     {
-                        throw new Exception($"Could not locate dockerfile '{dockerfilePath}'");
+                        throw new Exception($"Could not locate Dockerfile at '{dockerfilePath}'");
                     }
 
-                    Console.Out.WriteLine("Building Docker image ...");
+                    WriteSuccess("Dockerfile was located successfully.");
+
+                    Console.Out.WriteLine();
+                    Console.Out.WriteLine("Building the Docker image ...");
 
                     var dockerBuildPath = string.IsNullOrEmpty(parsedConfig.DockerBuildPath)
                         ? Directory.GetParent(dockerfilePath).FullName
@@ -157,19 +179,24 @@ namespace Clud.Cli
                     var tag = Guid.NewGuid().ToString().Substring(0, 8);
                     await ExecuteCommand($"docker build -t {imageName} -f {dockerfilePath} {dockerBuildPath}");
 
-                    Console.Out.WriteLine($"Successfully built image '{imageName}'");
+                    Console.Out.WriteLine();
+                    WriteSuccess("Successfully built the Docker image.");
 
-                    Console.Out.WriteLine("Pushing Docker image to the registry ...");
+                    Console.Out.WriteLine();
+                    Console.Out.WriteLine("Pushing the Docker image to the remote registry ...");
                     const string registryLocation = "registry.clud:5002"; // TODO - Parameterize per environment
                     await ExecuteCommand($"docker tag {imageName} {registryLocation}/{imageName}:{tag}");
                     await ExecuteCommand($"docker push {registryLocation}/{imageName}:{tag}");
-                    Console.Out.WriteLine("Successfully pushed image to the registry");
+                    Console.Out.WriteLine();
+                    WriteSuccess("Successfully pushed the Docker image.");
 
                     dockerImage = $"{imageName}:{tag}";
                 }
                 if (!string.IsNullOrEmpty(parsedConfig.DockerImage))
                 {
+                    Console.Out.WriteLine("The 'dockerImage' option was detected - the name of the public image will be passed to the API.");
                     dockerImage = parsedConfig.DockerImage;
+                    isPublicDockerImage = true;
                 }
 
                 using var channel = GrpcChannel.ForAddress("https://localhost:5001");
@@ -177,25 +204,43 @@ namespace Clud.Cli
 
                 var deploymentName = parsedConfig.Name.ToLowerInvariant();
 
-                Console.Out.WriteLine("Telling clud to deploy the image ...");
+                Console.Out.WriteLine();
+                Console.Out.WriteLine("Sending deployment details to the API ...");
 
                 await client.CreateDeploymentAsync(new CreateDeploymentRequest
                 {
                     Name = deploymentName,
                     DockerImage = dockerImage,
+                    IsPublicDockerImage = isPublicDockerImage,
                     Port = parsedConfig.Port,
                 });
 
-                console.Out.WriteLine($"Successfully created deployment named {deploymentName}");
+                WriteSuccess("Successfully sent deployment details.");
+
+                Console.Out.WriteLine();
+                WriteSuccess($"'{deploymentName}' has been deployed! \\(^?^)/");
+                Console.Out.WriteLine();
                 return 0;
             });
 
             return command;
         }
 
+        private static void WriteSuccess(string message)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Out.WriteLine(message);
+            Console.ResetColor();
+        }
+
         private static async Task ExecuteCommand(string command)
         {
-            Console.WriteLine(command);
+            Console.ForegroundColor = ConsoleColor.Cyan;
+
+            Console.Out.WriteLine();
+            Console.Out.WriteLine(command);
+
+            Console.ForegroundColor = ConsoleColor.DarkGray;
 
             var exitCode = await Process.ExecuteAsync(
                 command: "cmd.exe",
@@ -203,6 +248,8 @@ namespace Clud.Cli
                 stdOut: Console.Out.WriteLine,
                 stdErr: Console.Error.WriteLine
             );
+
+            Console.ResetColor();
 
             if (exitCode != 0)
             {
