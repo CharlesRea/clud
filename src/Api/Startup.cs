@@ -23,6 +23,7 @@ namespace Clud.Api
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddGrpc();
+            services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
 
             services.AddDbContext<DataContext>(
                 options => options.UseNpgsql(
@@ -44,6 +45,8 @@ namespace Clud.Api
             app.UseStaticFiles();
 
             app.UseRouting();
+
+            app.UseGrpcWeb();
 
             app.UseEndpoints(endpoints =>
             {

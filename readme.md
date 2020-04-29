@@ -67,6 +67,7 @@ Have a readthrough of the [Design Spec](./docs/01_DesignSpec.md) to understand t
 
 ### Test a deployment
 * In `src/Cli`, `dotnet run -- deploy`
+* Open https://localhost:5001/. You should see the Clud frontend.
 
 ### Optional IDE setup & tooling
 We've developed this using Jetbrains Rider. There are various plugins you can install to make your life easier. Similar
