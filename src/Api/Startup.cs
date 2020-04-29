@@ -11,7 +11,6 @@ namespace Clud.Api
 {
     public class Startup
     {
-
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -41,12 +40,16 @@ namespace Clud.Api
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseBlazorFrameworkFiles();
+            app.UseStaticFiles();
+
             app.UseRouting();
 
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapGrpcService<DeploymentsService>();
                 endpoints.MapGrpcService<ApplicationService>();
+                endpoints.MapFallbackToFile("index.html");
             });
         }
     }

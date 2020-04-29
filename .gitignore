@@ -3,6 +3,10 @@
 tls.crt
 tls.key
 
+**/wwwroot/dist/
+
+node_modules/
+
 # Common IntelliJ Platform excludes
 
 # User specific
