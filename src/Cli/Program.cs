@@ -5,9 +5,9 @@ using System.CommandLine.Help;
 using System.CommandLine.Invocation;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
-using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Net.Client;
+using Clud.Grpc;
 
 namespace Clud.Cli
 {

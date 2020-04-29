@@ -27,7 +27,6 @@ namespace Clud.Api
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapGrpcService<PodsService>();
                 endpoints.MapGrpcService<DeploymentsService>();
             });
         }

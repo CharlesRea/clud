@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
+using Clud.Grpc;
 using Grpc.Core;
 using KubeClient;
 using KubeClient.Models;
@@ -9,10 +10,10 @@ namespace Clud.Api.Services
 {
     public class DeploymentsService : Deployments.DeploymentsBase
     {
-        private readonly ILogger<PodsService> logger;
+        private readonly ILogger<DeploymentsService> logger;
         private readonly ILoggerFactory loggerFactory;
 
-        public DeploymentsService(ILogger<PodsService> logger, ILoggerFactory loggerFactory)
+        public DeploymentsService(ILogger<DeploymentsService> logger, ILoggerFactory loggerFactory)
         {
             this.logger = logger;
             this.loggerFactory = loggerFactory;
