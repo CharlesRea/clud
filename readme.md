@@ -15,6 +15,8 @@ By [Alex Potter](https://github.com/AlexJPotter) and [CharlesRea](https://github
 Very much a work in progress currently. These instructions are written assuming a Windows machine - it should
 be possible to install on Linux, but some tweaks may be needed.
 
+Have a readthrough of the [Design Spec](./docs/01_DesignSpec.md) to understand the project motivation and infrastructure.
+
 ### Install Prerequisites:
 * A local Kubernetes cluster, version 1.18+. 
   * The recommended way to set this up is to use [minikube](https://minikube.sigs.k8s.io/docs/start/).
