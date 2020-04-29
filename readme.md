@@ -36,6 +36,7 @@ Have a readthrough of the [Design Spec](./docs/01_DesignSpec.md) to understand t
   * [Traefik](https://docs.traefik.io/) is a reverse proxy service. All external requests to the cluster will arrive at
     Traefik, which will route the traffic to the correct Kubernetes service based on the request hostname. In Kubernetes
     terms, it's an Ingress controller)
+* Run `kubectl apply -f infrastructure/postgres.yaml`
 * Setup a self-signed certificate, and add it as a Kubernetes secret:
   * `openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=*.clud"`
   * `kubectl -n kube-system create secret tls traefik-tls-cert --key=tls.key --cert=tls.crt`
@@ -43,7 +44,7 @@ Have a readthrough of the [Design Spec](./docs/01_DesignSpec.md) to understand t
     "Place all certs in the following store", choose "Trusted Root Certification Authorities".
 * Add hosts file entries:
   * Run `minikube ip` to get the Minikube IP.
-  * Add a hosts file entry for `<minikube-ip> clud traefik.clud`
+  * Add a hosts file entry for `<minikube-ip> clud traefik.clud postgres.clud`
   * Check you can access http://traefik.clud,  https://traefik.clud
 * Setup the Docker registry, using Minikube's built in registry addon:
   * `minikube addons enable registry`
