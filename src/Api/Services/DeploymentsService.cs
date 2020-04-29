@@ -13,26 +13,31 @@ namespace Clud.Api.Services
     public class DeploymentsService : Deployments.DeploymentsBase
     {
         private readonly DataContext dataContext;
+        private readonly KubeApiClient kubeApiClient;
         private readonly ILogger<DeploymentsService> logger;
-        private readonly ILoggerFactory loggerFactory;
 
-        public DeploymentsService(DataContext dataContext, ILogger<DeploymentsService> logger, ILoggerFactory loggerFactory)
+        public DeploymentsService(DataContext dataContext, KubeApiClient kubeApiClient, ILogger<DeploymentsService> logger)
         {
             this.dataContext = dataContext;
+            this.kubeApiClient = kubeApiClient;
             this.logger = logger;
-            this.loggerFactory = loggerFactory;
         }
 
         public override async Task<CreateDeploymentResponse> CreateDeployment(CreateDeploymentRequest request, ServerCallContext context)
         {
             logger.LogInformation($"Received request {request.Name} / {request.DockerImage} / {request.Port}");
 
-            const string kubeNamespace = "default";
+            var kubeNamespace = request.Name;
 
-            var kubeClientOptions = K8sConfig.Load().ToKubeClientOptions();
-            kubeClientOptions.KubeNamespace = kubeNamespace;
-            kubeClientOptions.LoggerFactory = loggerFactory;
-            var client = KubeApiClient.Create(kubeClientOptions);
+            var existingNamespace = await kubeApiClient.NamespacesV1().Get(request.Name);
+
+            if (existingNamespace == null)
+            {
+                await kubeApiClient.NamespacesV1().Create(new NamespaceV1
+                {
+                    Metadata = new ObjectMetaV1 { Name = kubeNamespace }
+                });
+            }
 
             var deployment = new DeploymentV1
             {
@@ -70,7 +75,7 @@ namespace Clud.Api.Services
                 }
             };
 
-            await client.Dynamic().Apply(deployment, fieldManager: "clud", force: true);
+            await kubeApiClient.Dynamic().Apply(deployment, fieldManager: "clud", force: true);
 
             var service = new ServiceV1
             {
@@ -91,12 +96,12 @@ namespace Clud.Api.Services
                             Protocol = "TCP",
                             Port = request.Port, // This is the inbound port on the Service
                             TargetPort = request.Port, // This is the inbound port on the Pod (i.e. the underlying application)
-                        }
+                    }
                     }
                 },
             };
 
-            await client.Dynamic().Apply(service, fieldManager: "clud", force: true);
+            await kubeApiClient.Dynamic().Apply(service, fieldManager: "clud", force: true);
 
             var ingress = new IngressV1Beta1
             {
@@ -139,14 +144,20 @@ namespace Clud.Api.Services
                 },
             };
 
-            await client.Dynamic().Apply(ingress, fieldManager: "clud", force: true);
+            // TODO clean up no longer existing services
 
-            var existingApplication = await dataContext.Applications.SingleOrDefaultAsync(a => a.Name == request.Name);
-            if (existingApplication == null)
+            await kubeApiClient.Dynamic().Apply(ingress, fieldManager: "clud", force: true);
+
+            var application = await dataContext.Applications.SingleOrDefaultAsync(a => a.Name == request.Name);
+            if (application == null)
             {
-                dataContext.Applications.Add(new Application(request.Name));
-                await dataContext.SaveChangesAsync();
+                application = new Application(request.Name);
+                dataContext.Applications.Add(application);
             }
+
+            application.Update(new[] { service });
+            await dataContext.SaveChangesAsync();
+
 
             return new CreateDeploymentResponse();
         }

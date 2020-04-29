@@ -63,6 +63,9 @@ Have a readthrough of the [Design Spec](./docs/01_DesignSpec.md) to understand t
     * `docker tag zerokoll/helloworld  registry.clud:5002/zorokoll/helloworld`
     * `docker push registry.clud:5002/zorokoll/helloworld`
 
+### Setup the database
+* Run `./Build.ps1 RebuildDatabase`
+
 ### Running Clud
 * In `src/Api`, `dotnet watch run`
 

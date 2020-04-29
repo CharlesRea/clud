@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="..\protos\clud.proto" GrpcServices="Client" />
+    <Protobuf Include="..\protos\clud.proto" />
   </ItemGroup>
 
   <PropertyGroup>

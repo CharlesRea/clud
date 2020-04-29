@@ -1,5 +1,7 @@
-﻿using Clud.Api.Infrastructure.DataAccess;
+﻿using System;
+using Clud.Api.Infrastructure.DataAccess;
 using Clud.Api.Services;
+using KubeClient;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +33,10 @@ namespace Clud.Api
                     dbOptions => dbOptions.EnableRetryOnFailure(maxRetryCount: 2)
                 ).UseSnakeCaseNamingConvention()
             );
+
+            var kubeClientOptions = K8sConfig.Load().ToKubeClientOptions();
+            kubeClientOptions.KubeNamespace = "default";
+            services.AddKubeClient(kubeClientOptions);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

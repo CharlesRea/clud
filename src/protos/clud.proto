@@ -1,5 +1,8 @@
 syntax = "proto3";
 
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
 option csharp_namespace = "Clud.Grpc";
 
 service Deployments {
@@ -17,6 +20,7 @@ message CreateDeploymentResponse {
 
 service Applications {
   rpc ListApplications (ListApplicationsRequest) returns (ListApplicationsResponse);
+  rpc GetApplication (GetApplicationRequest) returns (ApplicationResponse);
 }
 
 message ListApplicationsRequest {
@@ -24,9 +28,31 @@ message ListApplicationsRequest {
 
 message ListApplicationsResponse {
   message Application {
-    int32 applicationId = 1;
-    string name = 2;
+    string name = 1;
   }
 
   repeated Application applications = 1;
+}
+
+message GetApplicationRequest {
+  string name = 1;
+}
+
+message ApplicationResponse {
+  string name = 1;
+  string url = 2;
+  repeated ServiceResponse services = 3;
+
+  message ServiceResponse {
+    string name = 1;
+    string url = 2;
+    repeated PodResponse pods = 3;
+  }
+
+  message PodResponse {
+    string name = 1;
+    string status = 2;
+    string statusMessage = 3;
+    google.protobuf.Timestamp creationDate = 4;
+  }
 }
