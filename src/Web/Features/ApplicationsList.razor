@@ -3,18 +3,16 @@
 @inject Applications.ApplicationsClient ApplicationsClient
 
 <div class="w-full flex flex-col items-center justify-center">
-    <h1>Clud.</h1>
-
     @if (applicationsResponse != null)
     {
-        <h2>Applications:</h2>
-        <ul>
-
-        @foreach (var application in applicationsResponse.Applications)
+        @foreach (var application in applicationsResponse.Applications.OrderByDescending(a => a.LastUpdatedTime))
         {
-            <li>@application.Name</li>
+            <ApplicationCard Application=@application />
         }
-        </ul>
+    }
+    else
+    {
+        <LoadingSpinner />
     }
 </div>
 

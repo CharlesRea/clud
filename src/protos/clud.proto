@@ -13,6 +13,9 @@ message CreateDeploymentRequest {
   string dockerImage = 2;
   bool isPublicDockerImage = 3;
   int32 port = 4;
+  string description = 5;
+  string owner = 6;
+  string repository = 7;
 }
 
 message CreateDeploymentResponse {
@@ -29,6 +32,9 @@ message ListApplicationsRequest {
 message ListApplicationsResponse {
   message Application {
     string name = 1;
+    string description = 2;
+    string owner = 3;
+    google.protobuf.Timestamp lastUpdatedTime = 4;
   }
 
   repeated Application applications = 1;
@@ -41,7 +47,11 @@ message GetApplicationRequest {
 message ApplicationResponse {
   string name = 1;
   string url = 2;
-  repeated ServiceResponse services = 3;
+  string description = 3;
+  string owner = 4;
+  string repository = 5;
+  google.protobuf.Timestamp lastUpdatedTime = 6;
+  repeated ServiceResponse services = 7;
 
   message ServiceResponse {
     string name = 1;
@@ -54,5 +64,10 @@ message ApplicationResponse {
     string status = 2;
     string statusMessage = 3;
     google.protobuf.Timestamp creationDate = 4;
+  }
+
+  message ApplicationHistoryResposne {
+    string message = 1;
+    google.protobuf.Timestamp updateDate = 2;
   }
 }

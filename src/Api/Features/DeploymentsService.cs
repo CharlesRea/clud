@@ -8,7 +8,7 @@ using KubeClient.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Clud.Api.Services
+namespace Clud.Api.Features
 {
     public class DeploymentsService : Deployments.DeploymentsBase
     {
@@ -31,15 +31,11 @@ namespace Clud.Api.Services
 
             var kubeNamespace = request.Name;
 
-            var existingNamespace = await kubeApiClient.NamespacesV1().Get(request.Name);
-
-            if (existingNamespace == null)
+            var namespaceDto = new NamespaceV1
             {
-                await kubeApiClient.NamespacesV1().Create(new NamespaceV1
-                {
-                    Metadata = new ObjectMetaV1 { Name = kubeNamespace }
-                });
-            }
+                Metadata = new ObjectMetaV1 { Name = kubeNamespace },
+            };
+            await kubeApiClient.Dynamic().Apply(namespaceDto, fieldManager: "clud", force: true);
 
             var deployment = new DeploymentV1
             {
@@ -100,7 +96,7 @@ namespace Clud.Api.Services
                             Protocol = "TCP",
                             Port = request.Port, // This is the inbound port on the Service
                             TargetPort = request.Port, // This is the inbound port on the Pod (i.e. the underlying application)
-                    }
+                        }
                     }
                 },
             };
@@ -155,15 +151,20 @@ namespace Clud.Api.Services
             var application = await dataContext.Applications.SingleOrDefaultAsync(a => a.Name == request.Name);
             if (application == null)
             {
-                application = new Application(request.Name);
+                application = new Application(request);
                 dataContext.Applications.Add(application);
             }
 
-            application.Update(new[] { service });
+            application.Update(request);
             await dataContext.SaveChangesAsync();
 
+            dataContext.ApplicationHistories.Add(new ApplicationHistory(application, "Application deployed"));
+            await dataContext.SaveChangesAsync();
 
             return new CreateDeploymentResponse();
+            // TODO return a URL to the CLI
+            // - URL of the app?
+            // - clud URL to see status?
         }
     }
 }

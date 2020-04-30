@@ -6,7 +6,9 @@ using Grpc.Net.Client;
 using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Shared;
 
 namespace Clud.Web
 {
@@ -16,6 +18,8 @@ namespace Clud.Web
         {
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
             builder.RootComponents.Add<App>("app");
+
+            builder.Services.Configure<CludOptions>(options => builder.Configuration.Bind("Clud", options));
 
             builder.Services.AddTransient(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
@@ -27,6 +31,8 @@ namespace Clud.Web
 
                 return new Applications.ApplicationsClient(channel);
             });
+
+            builder.Services.AddTransient<UrlGenerator>();
 
             await builder.Build().RunAsync();
         }

@@ -53,6 +53,9 @@ namespace Clud.Cli
         private class ConfigFileSchema
         {
             public string Name { get; set; }
+            public string Description { get; set; } = string.Empty;
+            public string Owner { get; set; } = string.Empty;
+            public string Repository { get; set; } = string.Empty;
 
             public int Port { get; set; }
 
@@ -103,7 +106,7 @@ namespace Clud.Cli
             {
             };
 
-            const string defaultConfigFile = "clud.yml";
+            const string defaultConfigFile = "clud.yaml";
             var configArgument = new Argument("config")
             {
                 Description = $"The path to the Clud config file. Defaults to {defaultConfigFile}",
@@ -213,6 +216,9 @@ namespace Clud.Cli
                     DockerImage = dockerImage,
                     IsPublicDockerImage = isPublicDockerImage,
                     Port = parsedConfig.Port,
+                    Description = parsedConfig.Description,
+                    Owner = parsedConfig.Owner,
+                    Repository = parsedConfig.Repository,
                 });
 
                 WriteSuccess("Successfully sent deployment details.");
@@ -260,7 +266,10 @@ namespace Clud.Cli
         private static void HandleException(Exception exception, InvocationContext context)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            context.Console.Error.WriteLine("Uh oh, something failed. Badly.");
+            context.Console.Error.WriteLine("Uh oh, something has gone badly wrong (ノ・∀・)ノ");
+            context.Console.Error.WriteLine(exception.Message);
+
+#if DEBUG
             context.Console.Error.WriteLine(exception.ToString());
 
             while (exception.InnerException != null)
@@ -269,6 +278,7 @@ namespace Clud.Cli
                 context.Console.Error.WriteLine("Inner exception:");
                 context.Console.Error.WriteLine(exception.ToString());
             }
+#endif
 
             Console.ResetColor();
 

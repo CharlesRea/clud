@@ -1,6 +1,4 @@
-using System.Collections.Generic;
-using System.Linq;
-using KubeClient.Models;
+using Clud.Api.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -9,6 +7,7 @@ namespace Clud.Api.Infrastructure.DataAccess
     public class DataContext : DbContext
     {
         public DbSet<Application> Applications { get; set; }
+        public DbSet<ApplicationHistory> ApplicationHistories { get; set; }
         public DbSet<Service> Services { get; set; }
 
         public DataContext(DbContextOptions<DataContext> options) : base(options)
@@ -35,42 +34,6 @@ namespace Clud.Api.Infrastructure.DataAccess
                     .Property(property.Name)
                     .HasConversion<string>();
             }
-        }
-    }
-
-    public class Application
-    {
-        public int ApplicationId { get; private set; }
-        public string Name { get; private set;  }
-        public string Namespace { get; private set; }
-        public ICollection<Service> Services { get; private set; }
-
-        private Application() { }
-
-        public Application(string name)
-        {
-            Name = name;
-            Namespace = name;
-            Services = new List<Service>();
-        }
-
-        public void Update(IReadOnlyCollection<ServiceV1> services) // TODO use the DTO passed to the deployment service
-        {
-            Services = services.Select(s => new Service(s.Metadata.Name)).ToList();
-        }
-    }
-
-    public class Service
-    {
-        public int ServiceId { get; private set; }
-        public int ApplicationId { get; private set; }
-        public string Name { get; private set;  }
-
-        private Service() { }
-
-        public Service(string name)
-        {
-            Name = name;
         }
     }
 }

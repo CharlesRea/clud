@@ -37,7 +37,8 @@ Have a readthrough of the [Design Spec](./docs/01_DesignSpec.md) to understand t
   * [Traefik](https://docs.traefik.io/) is a reverse proxy service. All external requests to the cluster will arrive at
     Traefik, which will route the traffic to the correct Kubernetes service based on the request hostname. In Kubernetes
     terms, it's an Ingress controller)
-* Run `kubectl apply -f infrastructure/postgres.yaml`
+* Setup Clud's postgres database:
+    * Run `kubectl apply -f infrastructure/postgres.yaml`
 * Setup a self-signed certificate, and add it as a Kubernetes secret (you might need to run the following commands in Git Bash or equivalent)
   * `openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=*.clud"`
   * `kubectl -n kube-system create secret tls traefik-tls-cert --key=tls.key --cert=tls.crt`
@@ -67,11 +68,12 @@ Have a readthrough of the [Design Spec](./docs/01_DesignSpec.md) to understand t
 * Run `./Build.ps1 RebuildDatabase`
 
 ### Running Clud
-* In `src/Api`, `dotnet watch run`
+* In `src/Web`, run `yarn watch` to compile the CSS
+* In `src/Api`, `dotnet watch run` to run the API and Blazor server
+* Open https://localhost:5001/. You should see the Clud frontend
 
 ### Test a deployment
 * In `src/Cli`, `dotnet run -- deploy`
-* Open https://localhost:5001/. You should see the Clud frontend.
 
 ### Optional IDE setup & tooling
 We've developed this using Jetbrains Rider. There are various plugins you can install to make your life easier. Similar

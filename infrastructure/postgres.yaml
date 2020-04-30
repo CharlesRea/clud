@@ -1,3 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clud
 ---
 apiVersion: v1
 kind: Service
@@ -12,7 +16,6 @@ spec:
     nodePort: 30432
   selector:
     app: postgres
-
 ---
 apiVersion: apps/v1
 kind: StatefulSet

@@ -7,18 +7,21 @@ using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using KubeClient;
 using Microsoft.EntityFrameworkCore;
+using Shared;
 
-namespace Clud.Api.Services
+namespace Clud.Api.Features
 {
     public class ApplicationService : Applications.ApplicationsBase
     {
         private readonly DataContext dataContext;
         private readonly KubeApiClient kubeApiClient;
+        private readonly UrlGenerator urlGenerator;
 
-        public ApplicationService(DataContext dataContext, KubeApiClient kubeApiClient)
+        public ApplicationService(DataContext dataContext, KubeApiClient kubeApiClient, UrlGenerator urlGenerator)
         {
             this.dataContext = dataContext;
             this.kubeApiClient = kubeApiClient;
+            this.urlGenerator = urlGenerator;
         }
 
         public override async Task<ListApplicationsResponse> ListApplications(ListApplicationsRequest request, ServerCallContext context)
@@ -28,6 +31,9 @@ namespace Clud.Api.Services
             var applications = await dataContext.Applications.Select(a => new ListApplicationsResponse.Types.Application
             {
                 Name = a.Name,
+                Description = a.Description,
+                Owner = a.Owner,
+                LastUpdatedTime =  Timestamp.FromDateTimeOffset(a.UpdatedDateTime),
             }).ToListAsync();
 
             response.Applications.AddRange(applications);
@@ -43,7 +49,11 @@ namespace Clud.Api.Services
             var response = new ApplicationResponse
             {
                 Name = application.Name,
-                Url = $"{application.Name}.clud" // TODO pull URL generation out somewhere,
+                Url = urlGenerator.GetApplicationUrl(application.Name),
+                Description = application.Description,
+                Owner = application.Owner,
+                Repository = application.Repository,
+                LastUpdatedTime = Timestamp.FromDateTimeOffset(application.UpdatedDateTime),
             };
             response.Services.AddRange(application.Services.Select(ProjectToServiceResponse));
 
@@ -54,8 +64,9 @@ namespace Clud.Api.Services
                 var serviceResponse = new ApplicationResponse.Types.ServiceResponse
                 {
                     Name = service.Name,
-                    Url = $"{service.Name}.{application.Name}.clud" // TODO pull URL generation out somewhere,
+                    Url = urlGenerator.GetServiceUrl(application.Name, service.Name),
                 };
+
                 // TODO match pods to the correct service when we can deploy multiple services
                 serviceResponse.Pods.AddRange(pods.Select(pod => new ApplicationResponse.Types.PodResponse
                 {
