@@ -6,14 +6,12 @@ using System.CommandLine.Help;
 using System.CommandLine.Invocation;
 using System.CommandLine.IO;
 using System.CommandLine.Parsing;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Grpc.Net.Client;
 using Clud.Grpc;
 using SharpYaml.Serialization;
-using SharpYaml.Serialization.Serializers;
 using Process = System.CommandLine.Invocation.Process;
 
 namespace Clud.Cli
@@ -117,15 +115,7 @@ namespace Clud.Cli
 
             command.Handler = CommandHandler.Create<IConsole, string>(async (console, config) =>
             {
-                Console.Out.Write(@"       _             _     
-  ___ | | _   _   __| |       __   _
- / __|| || | | | / _` |     _(  )_( )_
-| (__ | || |_| || (_| |    (_   _    _)
- \___||_| \__,_| \__,_|      (_) (__)
-");
-                Console.Out.WriteLine();
-
-                Console.Out.WriteLine();
+                PrintLogo();
 
                 Console.Out.WriteLine("Attempting to read configuration file ...");
 
@@ -283,6 +273,26 @@ namespace Clud.Cli
             Console.ResetColor();
 
             context.ResultCode = 1;
+        }
+
+        private static void PrintLogo()
+        {
+            Console.Out.Write(@"
+        ```````````````      
+      ````````ooo````````     
+     ````ooo`ooooo`ooo````    
+   `````ooooo`ooo`ooooo`````  
+  ```````ooo```````ooo``````` 
+ `````````````````````````````
+ `````````````````````````````
+   `````````````@@@@@```````  
+    `````````@@@@@@@@@@@```   
+      @@````@@@@@@@@``@@`     
+       @@@@@@@@@@@@@@@@      
+
+       c    l    u    d
+
+");
         }
     }
 }
