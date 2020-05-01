@@ -55,29 +55,22 @@ namespace Clud.Api.Features
                 Repository = application.Repository,
                 LastUpdatedTime = Timestamp.FromDateTimeOffset(application.UpdatedDateTime),
             };
-            response.Services.AddRange(application.Services.Select(ProjectToServiceResponse));
+
+            response.Services.AddRange(application.Services.Select(service => new ApplicationResponse.Types.ServiceResponse
+            {
+                Name = service.Name,
+                Url = urlGenerator.GetServiceUrl(application.Name, service.Name),
+            }));
+
+            response.Pods.AddRange(pods.Select(pod => new ApplicationResponse.Types.PodResponse
+            {
+                Name = pod.Metadata.Name,
+                CreationDate = Timestamp.FromDateTime(pod.Metadata.CreationTimestamp ?? throw new InvalidOperationException("Pod does not have a creationTimestamp")),
+                Status = pod.Status.Phase,
+                StatusMessage = pod.Status.Message ?? string.Empty,
+            }));
 
             return response;
-
-            ApplicationResponse.Types.ServiceResponse ProjectToServiceResponse(Service service)
-            {
-                var serviceResponse = new ApplicationResponse.Types.ServiceResponse
-                {
-                    Name = service.Name,
-                    Url = urlGenerator.GetServiceUrl(application.Name, service.Name),
-                };
-
-                // TODO match pods to the correct service when we can deploy multiple services
-                serviceResponse.Pods.AddRange(pods.Select(pod => new ApplicationResponse.Types.PodResponse
-                {
-                    Name = pod.Metadata.Name,
-                    CreationDate = Timestamp.FromDateTime(pod.Metadata.CreationTimestamp ?? throw new InvalidOperationException("Pod does not have a creationTimestamp")),
-                    Status = pod.Status.Phase,
-                    StatusMessage = pod.Status.Message ?? string.Empty,
-                }));
-
-                return serviceResponse;
-            }
         }
     }
 }

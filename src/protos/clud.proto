@@ -52,11 +52,11 @@ message ApplicationResponse {
   string repository = 5;
   google.protobuf.Timestamp lastUpdatedTime = 6;
   repeated ServiceResponse services = 7;
+  repeated PodResponse pods = 8;
 
   message ServiceResponse {
     string name = 1;
     string url = 2;
-    repeated PodResponse pods = 3;
   }
 
   message PodResponse {

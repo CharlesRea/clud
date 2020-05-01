@@ -23,7 +23,12 @@
   top: 0.5rem;
 }
 
-.clud-container {
+.container-sm {
   width: 100%;
   max-width: 900px;
+}
+
+.container-md {
+  width: 100%;
+  max-width: 1200px;
 }

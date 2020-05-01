@@ -1,0 +1,53 @@
+@page "/applications/{applicationName}"
+@using Clud.Grpc
+@using global::Shared
+@using Humanizer;
+@inject UrlGenerator urlGenerator
+@inject Applications.ApplicationsClient applicationsClient
+
+<div class="container-md mx-auto p-4">
+    <ApplicationHeader ApplicationName="@ApplicationName"/>
+    @if (application != null)
+    {
+        <div class="flex flex-col items-center">
+            @if (!string.IsNullOrWhiteSpace(application.Description))
+            {
+                <div class="text-gray-800 pt-4">@application.Description</div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(application.Owner) || !string.IsNullOrWhiteSpace(application.Repository))
+            {
+                <div class="text-gray-600 pt-4 flex -mx-2 items-center">
+                    @if (!string.IsNullOrWhiteSpace(application.Owner))
+                    {
+                        <span class="mx-2">Created by @application.Owner</span>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(application.Repository))
+                    {
+                        <div class="flex mx-2">
+                            <RepositoryLink Repository="@application.Repository" />
+                        </div>
+                    }
+                </div>
+            }
+            <div></div>
+        </div>
+    }
+    else
+    {
+        <LoadingSpinner />
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string ApplicationName { get; set; }
+
+    private ApplicationResponse application;
+
+    protected override async Task OnInitializedAsync()
+    {
+        application = await applicationsClient.GetApplicationAsync(new GetApplicationRequest { Name = ApplicationName });
+    }
+
+}

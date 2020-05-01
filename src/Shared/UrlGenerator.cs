@@ -18,8 +18,8 @@ namespace Shared
         public string GetApplicationUrl(string applicationName)
         {
             return IsRootApplicationName(applicationName)
-                ? cludOptions.BaseHostname
-                : $"{applicationName}.{cludOptions.BaseHostname}";
+                ? $"http://{cludOptions.BaseHostname}"
+                : $"http://{applicationName}.{cludOptions.BaseHostname}";
         }
 
         public string GetApplicationUrlSuffix(string applicationName)

@@ -3,7 +3,7 @@
 @using Humanizer;
 @inject UrlGenerator urlGenerator
 
-<a class="group w-full m-4 border-b-4 border-teal-500 bg-gray-100 py-4 px-6 shadow-md cursor-pointer text-gray-800 hover:bg-teal-500 hover:text-teal-100 hover:border-teal-100 flex">
+<a href="/applications/@Application.Name" class="group w-full m-4 border-b-4 border-teal-500 bg-gray-100 py-4 px-6 shadow-md text-gray-800 hover:bg-teal-500 hover:text-teal-100 hover:border-teal-100 flex">
     <div class="flex-1 max-w-full">
         <div class="text-2xl flex">
             <span class="font-semibold">@Application.Name</span>
@@ -15,7 +15,7 @@
         }
     </div>
     <div class="flex-col items-end justify-around hidden md:flex">
-        <div class="text-gray-600 group-hover:text-teal-200">@Application.LastUpdatedTime.ToDateTimeOffset().Humanize()</div>
+        <div class="text-gray-600 group-hover:text-teal-200" title="@Application.LastUpdatedTime.ToDateTimeOffset().ToString("f")">@Application.LastUpdatedTime.ToDateTimeOffset().Humanize()</div>
         @if (!string.IsNullOrWhiteSpace(Application.Owner))
         {
             <div class="text-gray-600 group-hover:text-teal-200">@Application.Owner</div>
@@ -24,8 +24,6 @@
 </a>
 
 @code {
-
     [Parameter]
     public ListApplicationsResponse.Types.Application Application { get; set; }
-
 }

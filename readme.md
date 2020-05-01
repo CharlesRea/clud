@@ -1,4 +1,4 @@
-# Clud
+# clud
 
 The solution to all your deployment concerns. Maybe.
 

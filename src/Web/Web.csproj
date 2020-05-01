@@ -26,9 +26,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="Features\ApplicationCard.razor">
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
     <Content Update="Features\LoadingSpinner.razor">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
@@ -41,6 +38,24 @@
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Update="Features\Application\ViewApplication.razor">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Update="Features\Applications\ApplicationCard.razor">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Update="Features\Dashboard\Dashboard.razor">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Update="Features\Dashboard\CludHeader.razor">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Update="Features\Applications\ApplicationHeader.razor">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+    <Content Update="Features\Applications\RepositoryLink.razor">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
   </ItemGroup>
 

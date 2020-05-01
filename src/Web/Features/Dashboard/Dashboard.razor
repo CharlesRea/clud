@@ -1,0 +1,33 @@
+﻿@page "/"
+@using Clud.Grpc
+@inject Grpc.Applications.ApplicationsClient applicationsClient
+@using Clud.Web.Features.Applications
+
+<div class="container-sm mx-auto p-4">
+    <CludHeader />
+    <div class="flex items-center justify-center">
+        <div class="w-full flex flex-col items-center justify-center">
+            @if (applicationsResponse != null)
+            {
+                @foreach (var application in applicationsResponse.Applications.OrderByDescending(a => a.LastUpdatedTime))
+                {
+                    <ApplicationCard Application=@application/>
+                }
+            }
+            else
+            {
+                <LoadingSpinner/>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private ListApplicationsResponse applicationsResponse;
+
+    protected override async Task OnInitializedAsync()
+    {
+        applicationsResponse = await applicationsClient.ListApplicationsAsync(new ListApplicationsRequest());
+    }
+
+}

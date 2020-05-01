@@ -1,0 +1,21 @@
+@using global::Shared
+@inject UrlGenerator urlGenerator
+
+<div class="flex justify-between items-center text-2xl py-4">
+    <a href="/" class="flex-1 flex items-center text-gray-600 hover:text-teal-600">
+        <img src="/logo.svg" alt="Logo." class="h-6 mr-2" />
+        <pre class="tracking-tight">clud</pre>
+    </a>
+
+    <a href="@urlGenerator.GetApplicationUrl(ApplicationName)" class="group flex justify-center">
+        <span class="font-semibold group-hover:text-teal-600">@ApplicationName</span>
+        <span class="text-gray-600 group-hover:text-teal-600">@urlGenerator.GetApplicationUrlSuffix(ApplicationName)</span>
+    </a>
+
+    <div class="flex-1"></div>
+</div>
+
+@code {
+    [Parameter]
+    public string ApplicationName { get; set; }
+}
