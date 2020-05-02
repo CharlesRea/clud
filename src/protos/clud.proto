@@ -10,12 +10,19 @@ service Deployments {
 
 message CreateDeploymentRequest {
   string name = 1;
-  string dockerImage = 2;
-  bool isPublicDockerImage = 3;
-  int32 port = 4;
-  string description = 5;
-  string owner = 6;
-  string repository = 7;
+  string owner = 2;
+  string description = 3;
+  string repository = 4;
+  string entryPoint = 5;
+
+  message ServiceDeploymentDetails {
+    string serviceName = 1;
+    string dockerImage = 2;
+    bool isPublicDockerImage = 3;
+    int32 port = 4;
+  }
+
+  repeated ServiceDeploymentDetails services = 6;
 }
 
 message CreateDeploymentResponse {

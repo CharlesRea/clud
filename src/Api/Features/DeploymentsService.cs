@@ -27,8 +27,6 @@ namespace Clud.Api.Features
 
         public override async Task<CreateDeploymentResponse> CreateDeployment(CreateDeploymentRequest request, ServerCallContext context)
         {
-            logger.LogInformation($"Received request {request.Name} / {request.DockerImage} / {request.Port}");
-
             var kubeNamespace = request.Name;
 
             var namespaceDto = new NamespaceV1
@@ -37,116 +35,124 @@ namespace Clud.Api.Features
             };
             await kubeApiClient.Dynamic().Apply(namespaceDto, fieldManager: "clud", force: true);
 
-            var deployment = new DeploymentV1
+            foreach (var serviceRequest in request.Services)
             {
-                Metadata = new ObjectMetaV1
+                var serviceName = serviceRequest.ServiceName;
+
+                var deployment = new DeploymentV1
                 {
-                    Name = request.Name,
-                    Namespace = kubeNamespace,
-                },
-                Spec = new DeploymentSpecV1
-                {
-                    Selector = new LabelSelectorV1
+                    Metadata = new ObjectMetaV1
                     {
-                        MatchLabels = {{ "App", request.Name }},
+                        Name = serviceName,
+                        Namespace = kubeNamespace,
                     },
-                    Template = new PodTemplateSpecV1
+                    Spec = new DeploymentSpecV1
                     {
-                        Metadata = new ObjectMetaV1
+                        Selector = new LabelSelectorV1
                         {
-                            Name = request.Name,
-                            Namespace = kubeNamespace,
-                            Labels = {{ "App", request.Name }}
+                            MatchLabels = {{ "App", serviceName }},
                         },
-                        Spec = new PodSpecV1
+                        Template = new PodTemplateSpecV1
                         {
-                            Containers =
+                            Metadata = new ObjectMetaV1
                             {
-                                new ContainerV1
-                                {
-                                    Name = request.Name,
-                                    Image = request.IsPublicDockerImage
-                                        ? request.DockerImage
-                                        : $"{DockerImageRegistryLocation}/{request.DockerImage}",
-                                }
-                            }
-                        }
-                    }
-                }
-            };
-
-            await kubeApiClient.Dynamic().Apply(deployment, fieldManager: "clud", force: true);
-
-            var service = new ServiceV1
-            {
-                Metadata = new ObjectMetaV1
-                {
-                    Name = request.Name,
-                    Namespace = kubeNamespace,
-                },
-                Spec = new ServiceSpecV1
-                {
-                    Selector = {{ "App", deployment.Spec.Template.Metadata.Labels["App"] }},
-                    Ports =
-                    {
-                        // TODO - Allow multiple port bindings
-                        new ServicePortV1
-                        {
-                            Name = "default",
-                            Protocol = "TCP",
-                            Port = request.Port, // This is the inbound port on the Service
-                            TargetPort = request.Port, // This is the inbound port on the Pod (i.e. the underlying application)
-                        }
-                    }
-                },
-            };
-
-            await kubeApiClient.Dynamic().Apply(service, fieldManager: "clud", force: true);
-
-            var ingress = new IngressV1Beta1
-            {
-                Metadata = new ObjectMetaV1
-                {
-                    Name = request.Name,
-                    Namespace = kubeNamespace,
-                },
-                Spec = new IngressSpecV1Beta1
-                {
-                    Rules =
-                    {
-                        new IngressRuleV1Beta1
-                        {
-                            Host = $"{request.Name}.clud",
-                            Http = new HTTPIngressRuleValueV1Beta1
+                                Name = serviceName,
+                                Namespace = kubeNamespace,
+                                Labels = {{ "App", serviceName }}
+                            },
+                            Spec = new PodSpecV1
                             {
-                                Paths =
+                                Containers =
                                 {
-                                    new HTTPIngressPathV1Beta1
+                                    new ContainerV1
                                     {
-                                        Path = "/",
-                                        Backend = new IngressBackendV1Beta1
-                                        {
-                                            ServiceName = service.Metadata.Name,
-                                            ServicePort = service.Spec.Ports.Single().Name,
-                                        }
+                                        Name = serviceName,
+                                        Image = serviceRequest.IsPublicDockerImage
+                                            ? serviceRequest.DockerImage
+                                            : $"{DockerImageRegistryLocation}/{serviceRequest.DockerImage}",
                                     }
                                 }
                             }
                         }
+                    }
+                };
+
+                await kubeApiClient.Dynamic().Apply(deployment, fieldManager: "clud", force: true);
+
+                var service = new ServiceV1
+                {
+                    Metadata = new ObjectMetaV1
+                    {
+                        Name = serviceName,
+                        Namespace = kubeNamespace,
                     },
-                    // TODO Traefik doesn't pick up the Ingress rule if the TLS entry is defined. However it works
-                    // fine since apparently Traefik just registeres the Traefik-UI ingress rule to apply to every
-                    // endpoint, and since the cert is a wildcard cert this continues to be accessible over HTTPS...
-                    // Tls =
-                    // {
-                    //     new IngressTLSV1Beta1 { SecretName = "traefik-tls-cert" },
-                    // }
-                },
-            };
+                    Spec = new ServiceSpecV1
+                    {
+                        Selector = {{ "App", deployment.Spec.Template.Metadata.Labels["App"] }},
+                        Ports =
+                        {
+                            // TODO - Allow multiple port bindings
+                            new ServicePortV1
+                            {
+                                Name = "default",
+                                Protocol = "TCP",
+                                Port = serviceRequest.Port, // This is the inbound port on the Service
+                                TargetPort = serviceRequest.Port, // This is the inbound port on the Pod (i.e. the underlying application)
+                            }
+                        }
+                    },
+                };
 
-            // TODO clean up no longer existing services
+                await kubeApiClient.Dynamic().Apply(service, fieldManager: "clud", force: true);
 
-            await kubeApiClient.Dynamic().Apply(ingress, fieldManager: "clud", force: true);
+                // We only create an ingress rule for the entry point - all other services are only accessed from within the cluster
+                if (serviceName != request.EntryPoint) continue;
+
+                var ingress = new IngressV1Beta1
+                {
+                    Metadata = new ObjectMetaV1
+                    {
+                        Name = serviceName,
+                        Namespace = kubeNamespace,
+                    },
+                    Spec = new IngressSpecV1Beta1
+                    {
+                        Rules =
+                        {
+                            new IngressRuleV1Beta1
+                            {
+                                Host = $"{request.Name}.clud",
+                                Http = new HTTPIngressRuleValueV1Beta1
+                                {
+                                    Paths =
+                                    {
+                                        new HTTPIngressPathV1Beta1
+                                        {
+                                            Path = "/",
+                                            Backend = new IngressBackendV1Beta1
+                                            {
+                                                ServiceName = service.Metadata.Name,
+                                                ServicePort = service.Spec.Ports.Single().Name,
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        // TODO Traefik doesn't pick up the Ingress rule if the TLS entry is defined. However it works
+                        // fine since apparently Traefik just registers the Traefik-UI ingress rule to apply to every
+                        // endpoint, and since the cert is a wildcard cert this continues to be accessible over HTTPS...
+                        // Tls =
+                        // {
+                        //     new IngressTLSV1Beta1 { SecretName = "traefik-tls-cert" },
+                        // }
+                    },
+                };
+
+                // TODO clean up no longer existing services
+
+                await kubeApiClient.Dynamic().Apply(ingress, fieldManager: "clud", force: true);
+            }
 
             var application = await dataContext.Applications.SingleOrDefaultAsync(a => a.Name == request.Name);
             if (application == null)

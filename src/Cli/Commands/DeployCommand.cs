@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
@@ -17,7 +18,7 @@ namespace Clud.Cli.Commands
         private const string CommandName = "deploy";
 
         private const string ConfigArgumentName = "config";
-        private const string DefaultConfigFile = "clud.yml";
+        private const string DefaultConfigFile = "clud.yaml";
 
         public static Command Command()
         {
@@ -43,25 +44,14 @@ namespace Clud.Cli.Commands
                 ConsoleHelpers.PrintLogo();
 
                 var configuration = await GetConfiguration(config);
+                var configFileDirectory = Directory.GetParent(config).FullName;
 
-                string dockerImage = null;
-                var isPublicDockerImage = false;
+                var serviceDeployments = new List<CreateDeploymentRequest.Types.ServiceDeploymentDetails>();
 
-                if (configuration.SpecifiesProject)
+                foreach (var serviceConfiguration in configuration.Services)
                 {
-                    Console.Out.WriteLine("The 'project' option was detected - clud will attempt to build a suitable image by inspecting your code.");
-                    throw new NotImplementedException("Producing a suitable Docker image from a project file is not supported yet");
-                }
-                if (configuration.SpecifiesDockerfile)
-                {
-                    Console.Out.WriteLine("The 'dockerfile' option was detected - an image will be built and pushed to the remote registry.");
-                    dockerImage = await BuildDockerImageFromDockerfile(config, configuration, verbose);
-                }
-                if (configuration.SpecifiesDockerImage)
-                {
-                    Console.Out.WriteLine("The 'dockerImage' option was detected - the name of the public image will be passed to the API.");
-                    dockerImage = configuration.DockerImage;
-                    isPublicDockerImage = true;
+                    var serviceDeploymentDetails = await ProcessService(serviceConfiguration, configFileDirectory, verbose);
+                    serviceDeployments.Add(serviceDeploymentDetails);
                 }
 
                 using var channel = GrpcChannel.ForAddress("https://localhost:5001");
@@ -72,16 +62,17 @@ namespace Clud.Cli.Commands
                 Console.Out.WriteLine();
                 Console.Out.WriteLine("Sending deployment details to the API ...");
 
-                await client.CreateDeploymentAsync(new CreateDeploymentRequest
+                var createDeploymentRequest = new CreateDeploymentRequest
                 {
                     Name = deploymentName,
-                    DockerImage = dockerImage,
-                    IsPublicDockerImage = isPublicDockerImage,
-                    Port = configuration.Port,
-                    Description = configuration.Description,
                     Owner = configuration.Owner,
+                    Description = configuration.Description,
                     Repository = configuration.Repository,
-                });
+                    EntryPoint = configuration.EntryPoint,
+                };
+                createDeploymentRequest.Services.AddRange(serviceDeployments);
+
+                await client.CreateDeploymentAsync(createDeploymentRequest);
 
                 ConsoleHelpers.WriteSuccess("Successfully sent deployment details.");
 
@@ -107,10 +98,10 @@ namespace Clud.Cli.Commands
             var yamlSerializer = new Serializer(new SerializerSettings { NamingConvention = new CamelCaseNamingConvention() });
             var configuration = yamlSerializer.Deserialize<Configuration>(fileStream);
 
-            var validationErrors = configuration.GetValidationErrors();
-            if (validationErrors.Any())
+            var validationErrors = configuration?.GetValidationErrors().ToList();
+            if (configuration == null || validationErrors.Any())
             {
-                throw new Exception($"Invalid configuration file.\r\n{string.Join("\r\n", validationErrors.Select(error => " - " + error))}");
+                throw new Exception($"Invalid configuration file.\r\n{string.Join("\r\n", validationErrors?.Select(error => " - " + error) ?? new List<string>())}");
             }
 
             ConsoleHelpers.WriteSuccess("Configuration file was read successfully.");
@@ -119,12 +110,48 @@ namespace Clud.Cli.Commands
             return configuration;
         }
 
-        private static async Task<string> BuildDockerImageFromDockerfile(string config, Configuration configuration, bool verbose)
+        private static async Task<CreateDeploymentRequest.Types.ServiceDeploymentDetails> ProcessService(ServiceConfiguration serviceConfiguration, string configFileDirectory, bool verbose)
+        {
+            Console.Out.WriteLine();
+            Console.Out.WriteLine($"Processing service '{serviceConfiguration.Name}' ...");
+
+            string dockerImage = null;
+            var isPublicDockerImage = false;
+
+            if (serviceConfiguration.SpecifiesProject)
+            {
+                Console.Out.WriteLine("The 'project' option was detected - clud will attempt to build a suitable image by inspecting your code.");
+                throw new NotImplementedException("Producing a suitable Docker image from a project file is not supported yet");
+            }
+            else if (serviceConfiguration.SpecifiesDockerfile)
+            {
+                Console.Out.WriteLine("The 'dockerfile' option was detected - an image will be built and pushed to the remote registry.");
+                dockerImage = await BuildDockerImageFromDockerfile(serviceConfiguration, configFileDirectory, verbose);
+            }
+            else if (serviceConfiguration.SpecifiesDockerImage)
+            {
+                Console.Out.WriteLine("The 'dockerImage' option was detected - the name of the public image will be passed to the API.");
+                dockerImage = serviceConfiguration.DockerImage;
+                isPublicDockerImage = true;
+            }
+
+            Console.Out.WriteLine();
+            ConsoleHelpers.WriteSuccess($"Successfully processed '{serviceConfiguration.Name}'.");
+
+            return new CreateDeploymentRequest.Types.ServiceDeploymentDetails
+            {
+                ServiceName = serviceConfiguration.Name,
+                DockerImage = dockerImage,
+                IsPublicDockerImage = isPublicDockerImage,
+                Port = serviceConfiguration.Port,
+            };
+        }
+
+        private static async Task<string> BuildDockerImageFromDockerfile(ServiceConfiguration configuration, string configFileDirectory, bool verbose)
         {
             Console.Out.WriteLine();
             Console.Out.WriteLine("Attempting to locate Dockerfile ...");
 
-            var configFileDirectory = Directory.GetParent(config).FullName;
             var dockerfilePath = Path.GetFullPath(configuration.Dockerfile, configFileDirectory);
 
             if (!File.Exists(dockerfilePath))
