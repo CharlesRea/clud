@@ -1,0 +1,9 @@
+name: weather
+entryPoint: web
+services:
+  - name: web
+    dockerfile: ./Web/dockerfile
+    port: 80
+  - name: api
+    dockerfile: ./Api/dockerfile
+    port: 80

@@ -1,0 +1,28 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="mt-5">
+    @if (Model.Error != null)
+    {
+        <pre class="p-3 mb-2 bg-white text-dark rounded">@Model.Error</pre>
+    }
+    else
+    {
+        <div class="d-flex flex-row justify-content-between flex-wrap">
+            @foreach (var forecast in Model.Forecasts)
+            {
+                <div class="shadow p-3 mb-5 bg-white rounded mx-2 p-4" style="flex: 1;">
+                    <div><span style="font-size: 24px;">@forecast.Date.DayOfWeek</span></div>
+                    <span class="text-muted">@forecast.Summary</span>
+                    <div class="pl-2">
+                        <span class="align-top display-3 mr-1">@forecast.TemperatureC</span>
+                        <span class="align-top text-muted" style="display: inline-block; font-size: 25px; transform: translateY(10px);">°C</span>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
