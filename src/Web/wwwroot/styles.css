@@ -1,5 +1,9 @@
 @import "tailwindcss/base";
 
+th {
+  font-weight: 400;
+}
+
 @import "tailwindcss/components";
 
 @import "tailwindcss/utilities";

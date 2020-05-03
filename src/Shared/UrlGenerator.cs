@@ -29,9 +29,16 @@ namespace Shared
                 : $".{cludOptions.BaseHostname}";
         }
 
-        public string GetServiceUrl(string applicationName, string serviceName)
+        public string GetExternalServiceHostname(string applicationName, string serviceName)
         {
             return $"{serviceName}.{applicationName}.{cludOptions.BaseHostname}";
         }
+
+        public string GetInternalServiceHostname(string applicationName, string serviceName, int port)
+        {
+            return $"{serviceName}.{applicationName}:{port}";
+        }
+
+        public string GetServiceUrlSuffix(string applicationName) => $".{GetApplicationUrl(applicationName)}";
     }
 }

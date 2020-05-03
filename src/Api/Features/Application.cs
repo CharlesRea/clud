@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Clud.Api.Infrastructure.DataAccess;
 using Clud.Grpc;
 
 namespace Clud.Api.Features
@@ -26,13 +28,10 @@ namespace Clud.Api.Features
             Repository = deployment.Repository;
             UpdatedDateTime = DateTimeOffset.UtcNow;
 
-            Services = new List<Service>
-            {
-                new Service(deployment.Name),
-            };
+            Services = deployment.Services.Select(s => new Service(s)).ToList();
         }
 
-        public void Update(CreateDeploymentRequest deployment)
+        public (IReadOnlyCollection<Service> newServices, IReadOnlyCollection<Service> deletedServices) Update(CreateDeploymentRequest deployment)
         {
             Name = deployment.Name;
             Description = deployment.Description;
@@ -40,7 +39,42 @@ namespace Clud.Api.Features
             Repository = deployment.Repository;
             UpdatedDateTime = DateTimeOffset.UtcNow;
 
-            // TODO handle service updating
+            var updatedServices = UpdateServices();
+            return updatedServices;
+
+            (IReadOnlyCollection<Service> newServices, IReadOnlyCollection<Service> deletedServices) UpdateServices()
+            {
+                var newServices = new List<Service>();
+                if (Services == null)
+                {
+                    throw new NavigationPropertyNotLoadedException(nameof(Services));
+                }
+
+                var existingServices = Services.ToDictionary(s => s.Name);
+
+                foreach (var service in deployment.Services)
+                {
+                    var existingService = existingServices.GetValueOrDefault(service.ServiceName);
+                    if (existingService != null)
+                    {
+                        existingService.Update(service);
+                    }
+                    else
+                    {
+                        var newService = new Service(service);
+                        Services.Add(newService);
+                        newServices.Add(newService);
+                    }
+                }
+
+                var deletedServices = Services.Where(service => deployment.Services.All(s => service.Name != s.ServiceName)).ToList();
+                foreach (var service in deletedServices)
+                {
+                    Services.Remove(service);
+                }
+
+                return (newServices, deletedServices);
+            }
         }
     }
 }

@@ -59,11 +59,19 @@ message ApplicationResponse {
   string repository = 5;
   google.protobuf.Timestamp lastUpdatedTime = 6;
   repeated ServiceResponse services = 7;
-  repeated PodResponse pods = 8;
+  repeated ApplicationHistoryResponse history = 8;
 
   message ServiceResponse {
     string name = 1;
-    string url = 2;
+    bool externallyAccessible = 2;
+    string externalHostname = 3;
+    string internalHostname = 4;
+    int32 totalPods = 5;
+    int32 readyPods = 6;
+    int32 upToDatePods = 7;
+    int32 desiredPods = 8;
+    string imageName = 9;
+    repeated PodResponse pods = 10;
   }
 
   message PodResponse {
@@ -71,9 +79,10 @@ message ApplicationResponse {
     string status = 2;
     string statusMessage = 3;
     google.protobuf.Timestamp creationDate = 4;
+    string image = 5;
   }
 
-  message ApplicationHistoryResposne {
+  message ApplicationHistoryResponse {
     string message = 1;
     google.protobuf.Timestamp updateDate = 2;
   }

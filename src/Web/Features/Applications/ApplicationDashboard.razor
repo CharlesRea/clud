@@ -1,7 +1,6 @@
 @page "/applications/{applicationName}"
 @using Clud.Grpc
 @using global::Shared
-@using Humanizer;
 @inject UrlGenerator urlGenerator
 @inject Applications.ApplicationsClient applicationsClient
 
@@ -12,12 +11,12 @@
         <div class="flex flex-col items-center">
             @if (!string.IsNullOrWhiteSpace(application.Description))
             {
-                <div class="text-gray-800 pt-4">@application.Description</div>
+                <div class="pt-4">@application.Description</div>
             }
 
             @if (!string.IsNullOrWhiteSpace(application.Owner) || !string.IsNullOrWhiteSpace(application.Repository))
             {
-                <div class="text-gray-600 pt-4 flex -mx-2 items-center">
+                <div class="pt-4 flex -mx-2 items-center">
                     @if (!string.IsNullOrWhiteSpace(application.Owner))
                     {
                         <span class="mx-2">Created by @application.Owner</span>
@@ -30,7 +29,24 @@
                     }
                 </div>
             }
-            <div></div>
+        </div>
+
+        <div>
+            <div class="flex flex-wrap-reverse justify-between items-center mx-2">
+                <h2 class="text-2xl text-gray-600 my-4">Services</h2>
+                <div class="flex flex-wrap">
+                    <a href="@urlGenerator.GetApplicationUrl(ApplicationName)" target="_blank" class="text-gray-600 hover:text-teal-600">Link to app</a>
+                    <button class="text-gray-600 hover:text-teal-600 ml-4">Restart</button> @* TODO make this do something *@
+                    <button class="text-gray-600 hover:text-teal-600 ml-4">Delete</button> @* TODO make this do something *@
+                </div>
+            </div>
+            @foreach (var service in application.Services)
+            {
+                <ServiceCard service="@service"/>
+            }
+        </div>
+        <div class="mt-6 ml-2">
+            <ApplicationHistory application="@application" />
         </div>
     }
     else

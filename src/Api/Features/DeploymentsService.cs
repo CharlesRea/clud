@@ -50,7 +50,7 @@ namespace Clud.Api.Features
                     {
                         Selector = new LabelSelectorV1
                         {
-                            MatchLabels = {{ "App", serviceName }},
+                            MatchLabels = {{ KubeNaming.AppLabelKey, serviceName }},
                         },
                         Template = new PodTemplateSpecV1
                         {
@@ -58,7 +58,7 @@ namespace Clud.Api.Features
                             {
                                 Name = serviceName,
                                 Namespace = kubeNamespace,
-                                Labels = {{ "App", serviceName }}
+                                Labels = {{ KubeNaming.AppLabelKey, serviceName }}
                             },
                             Spec = new PodSpecV1
                             {
@@ -88,13 +88,13 @@ namespace Clud.Api.Features
                     },
                     Spec = new ServiceSpecV1
                     {
-                        Selector = {{ "App", deployment.Spec.Template.Metadata.Labels["App"] }},
+                        Selector = {{ KubeNaming.AppLabelKey, deployment.Spec.Template.Metadata.Labels["App"] }},
                         Ports =
                         {
                             // TODO - Allow multiple port bindings
                             new ServicePortV1
                             {
-                                Name = "default",
+                                Name = KubeNaming.ServiceDefaultPortName,
                                 Protocol = "TCP",
                                 Port = serviceRequest.Port, // This is the inbound port on the Service
                                 TargetPort = serviceRequest.Port, // This is the inbound port on the Pod (i.e. the underlying application)
@@ -149,23 +149,43 @@ namespace Clud.Api.Features
                     },
                 };
 
-                // TODO clean up no longer existing services
-
                 await kubeApiClient.Dynamic().Apply(ingress, fieldManager: "clud", force: true);
             }
 
-            var application = await dataContext.Applications.SingleOrDefaultAsync(a => a.Name == request.Name);
-            if (application == null)
+            var application = await dataContext.Applications
+                .Include(a => a.Services)
+                .SingleOrDefaultAsync(a => a.Name == request.Name);
+            var applicationExists = application != null;
+
+            if (applicationExists)
+            {
+                var (newServices, deletedServices) = application.Update(request);
+
+                foreach (var deletedService in deletedServices)
+                {
+                    await kubeApiClient.ServicesV1().Delete(deletedService.Name, kubeNamespace);
+                }
+
+                var historyMessage =
+                    $"Update deployed"
+                      + (newServices.Any() ? $". New services added: {string.Join(", ", newServices.Select(s => s.Name))}" : "")
+                      + (deletedServices.Any() ? $". Services removed: {string.Join(", ", deletedServices.Select(s => s.Name))}" : "");
+
+                dataContext.ApplicationHistories.Add(new ApplicationHistory(application, historyMessage));
+                await dataContext.SaveChangesAsync();
+            }
+
+            if (!applicationExists)
             {
                 application = new Application(request);
                 dataContext.Applications.Add(application);
+                await dataContext.SaveChangesAsync();
+                dataContext.ApplicationHistories.Add(new ApplicationHistory(
+                    application,
+                    $"Application created, with services {string.Join(", ", application.Services.Select(s => s.Name))}"
+                ));
+                await dataContext.SaveChangesAsync();
             }
-
-            application.Update(request);
-            await dataContext.SaveChangesAsync();
-
-            dataContext.ApplicationHistories.Add(new ApplicationHistory(application, "Application deployed"));
-            await dataContext.SaveChangesAsync();
 
             return new CreateDeploymentResponse();
             // TODO return a URL to the CLI

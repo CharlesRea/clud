@@ -1,3 +1,5 @@
+using Clud.Grpc;
+
 namespace Clud.Api.Features
 {
     public class Service
@@ -8,9 +10,14 @@ namespace Clud.Api.Features
 
         private Service() { }
 
-        public Service(string name)
+        public Service(CreateDeploymentRequest.Types.ServiceDeploymentDetails service)
         {
-            Name = name;
+            Name = service.ServiceName;
+        }
+
+        public void Update(CreateDeploymentRequest.Types.ServiceDeploymentDetails service)
+        {
+            Name = service.ServiceName;
         }
     }
 }
