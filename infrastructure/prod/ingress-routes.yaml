@@ -1,0 +1,29 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: traefik-web-ui
+spec:
+  rules:
+  - host: traefik.clud.ghyston.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: traefik-web-ui
+          servicePort: web
+  tls:
+   - secretName: traefik-tls-cert
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: clud-server
+spec:
+  rules:
+  - host: clud.clud.ghyston.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: clud-server
+          servicePort: web

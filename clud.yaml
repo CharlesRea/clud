@@ -1,0 +1,80 @@
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: clud
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: clud-service-account
+  namespace: clud
+---
+
+# Grant the clud service account superadmin access to k8s, to allow creating pods etc in any namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: clud-cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: clud-service-account
+  namespace: clud
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: clud
+  namespace: clud
+spec:
+  selector:
+    matchLabels:
+      app: clud
+  template:
+    metadata:
+      name: clud
+      namespace: clud
+      labels:
+        app: clud
+    spec:
+      containers:
+      - image: localhost:5000/clud
+        name: clud
+      serviceAccountName: clud-service-account
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: clud
+  namespace: clud
+spec:
+  selector:
+    app: clud
+  ports:
+    - protocol: TCP
+      port: 80
+      name: web
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: clud
+  namespace: clud
+  annotations:
+    ingress.kubernetes.io/protocol: h2c
+spec:
+  rules:
+  - host: clud
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: clud
+          servicePort: web

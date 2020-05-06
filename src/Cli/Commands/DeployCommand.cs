@@ -54,7 +54,7 @@ namespace Clud.Cli.Commands
                     serviceDeployments.Add(serviceDeploymentDetails);
                 }
 
-                using var channel = GrpcChannel.ForAddress("https://localhost:5001");
+                using var channel = GrpcChannel.ForAddress("https://clud.clud.ghyston.com/");
                 var client = new Deployments.DeploymentsClient(channel);
 
                 var deploymentName = configuration.Name.ToLowerInvariant();
@@ -177,7 +177,7 @@ namespace Clud.Cli.Commands
 
             Console.Out.WriteLine();
             Console.Out.WriteLine("Pushing the Docker image to the remote registry ...");
-            const string registryLocation = "registry.clud:5002"; // TODO - Parameterize per environment
+            const string registryLocation = "registry.clud.ghyston.com"; // TODO - Parameterize per environment
             await CommandLineHelpers.ExecuteCommand($"docker tag {imageName} {registryLocation}/{imageName}:{tag}", verbose);
             await CommandLineHelpers.ExecuteCommand($"docker push {registryLocation}/{imageName}:{tag}", verbose);
             Console.Out.WriteLine();

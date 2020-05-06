@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+bases:
+- ../base
+secretGenerator:
+- name: traefik-tls-cert
+  namespace: clud
+  files:
+    - "./certs/tls.crt"
+    - "./certs/tls.key"
+  type: "kubernetes.io/tls"
+- name: clud-postgres-user
+  namespace: clud
+  literals:
+    - username=clud
+    - password=supersecret
+configMapGenerator:
+- name: clud-server-config
+  literals:    
+  - basehostname=clud.clud
+generatorOptions:
+  disableNameSuffixHash: true # Kustomize doesn't correctly passed the hashed name of the SSL secret to Traefik, so we disable hashing

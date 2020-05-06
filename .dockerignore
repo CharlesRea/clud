@@ -1,0 +1,9 @@
+# directories
+**/bin/
+**/obj/
+**/out/
+**/node_modules/
+
+# files
+Dockerfile*
+**/*.md

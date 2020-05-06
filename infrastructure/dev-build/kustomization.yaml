@@ -1,0 +1,8 @@
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+bases:
+- ../dev
+images:
+- name: localhost:5000/clud-server
+  newTag: 2c8ad966

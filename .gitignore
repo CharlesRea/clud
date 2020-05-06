@@ -3,9 +3,16 @@
 tls.crt
 tls.key
 
+prod-kube-config
+
 **/wwwroot/dist/
 
 node_modules/
+
+infrastructure/build/
+
+# Nuke Build
+.tmp
 
 # Common IntelliJ Platform excludes
 

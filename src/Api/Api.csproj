@@ -26,4 +26,17 @@
     <Watch Include="..\Web\**\*.razor" />
   </ItemGroup>
 
+  <Target Name="PublishRunWebpack" BeforeTargets="BeforePublish">
+    <Exec Command="yarn --version" ContinueOnError="true">
+      <Output TaskParameter="ExitCode" PropertyName="ErrorCode" />
+    </Exec>
+    <Error Condition="'$(ErrorCode)' != '0'" Text="Yarn is required to publish this project" />
+    <Exec WorkingDirectory="../Web" Command="yarn install" />
+    <Exec WorkingDirectory="../Web" Command="yarn build" />
+  </Target>
+
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="wwwroot\index.html" />
+  </ItemGroup>
+
 </Project>

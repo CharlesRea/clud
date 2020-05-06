@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: clud-service-account
+---
+
+# Grant the clud service account superadmin access to k8s, to allow creating pods etc in any namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: clud-cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: clud-service-account
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: clud-server
+spec:
+  selector:
+    matchLabels:
+      app: clud-server
+  template:
+    metadata:
+      name: clud-server
+      labels:
+        app: clud-server
+    spec:
+      containers:
+      - image: localhost:5000/clud-server
+        name: clud-server
+        env:
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: clud-postgres-user
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: clud-postgres-user
+              key: password
+        - name: CLUD__CONNECTIONSTRING
+          value: "Host=postgres;Port=5432;Database=clud;Username=$(POSTGRES_USER);Password=$(POSTGRES_PASSWORD)"
+        - name: CLUD__BASEHOSTNAME      
+          valueFrom:
+            configMapKeyRef:
+              name: clud-server-config
+              key: basehostname
+      serviceAccountName: clud-service-account
+---
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: clud-server
+spec:
+  selector:
+    app: clud-server
+  ports:
+    - protocol: TCP
+      port: 80
+      name: web
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: clud-server
+  annotations:
+    ingress.kubernetes.io/protocol: h2c
+spec:
+  rules:
+  - host: clud.clud
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: clud-server
+          servicePort: web

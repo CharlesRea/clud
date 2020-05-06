@@ -1,0 +1,19 @@
+env:
+  DRONE_SERVER_HOST: drone.clud.ghyston.com
+  DRONE_SERVER_PROTO: https
+  DRONE_RPC_SECRET: ' ' # This is required by the Helm chart, but we actually set it from the RPC secret below
+  DRONE_GITHUB_SCOPE: public_repo,repo:status,user:email,read:org
+
+extraSecretNamesForEnvFrom:
+  - drone-github-secrets
+  - drone-rpc-secrets
+
+ingress:
+  enabled: true
+  hosts:
+    - host: drone.clud.ghyston.com
+      paths:
+        - "/"
+
+persistentVolume:
+  storageClass: null

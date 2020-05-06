@@ -1,0 +1,10 @@
+rbac:
+  buildNamespaces:
+    - clud
+
+env:
+  DRONE_RPC_SECRET: ' ' # This is required by the Helm chart, but we actually set it from the RPC secret below
+  DRONE_NAMESPACE_DEFAULT: clud
+
+extraSecretNamesForEnvFrom:
+  - drone-rpc-secrets

@@ -7,6 +7,8 @@ using KubeClient;
 using KubeClient.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Shared;
 
 namespace Clud.Api.Features
 {
@@ -14,14 +16,16 @@ namespace Clud.Api.Features
     {
         private readonly DataContext dataContext;
         private readonly KubeApiClient kubeApiClient;
+        private readonly CludOptions cludOptions;
         private readonly ILogger<DeploymentsService> logger;
 
-        private const string DockerImageRegistryLocation = "localhost:5000";
+        private const string DockerRegistryLocation = "localhost:5000";
 
-        public DeploymentsService(DataContext dataContext, KubeApiClient kubeApiClient, ILogger<DeploymentsService> logger)
+        public DeploymentsService(DataContext dataContext, KubeApiClient kubeApiClient, IOptions<CludOptions> cludOptions, ILogger<DeploymentsService> logger)
         {
             this.dataContext = dataContext;
             this.kubeApiClient = kubeApiClient;
+            this.cludOptions = cludOptions.Value;
             this.logger = logger;
         }
 
@@ -69,7 +73,7 @@ namespace Clud.Api.Features
                                         Name = serviceName,
                                         Image = serviceRequest.IsPublicDockerImage
                                             ? serviceRequest.DockerImage
-                                            : $"{DockerImageRegistryLocation}/{serviceRequest.DockerImage}",
+                                            : $"{DockerRegistryLocation}/{serviceRequest.DockerImage}",
                                     }
                                 }
                             }
@@ -121,7 +125,7 @@ namespace Clud.Api.Features
                         {
                             new IngressRuleV1Beta1
                             {
-                                Host = $"{request.Name}.clud",
+                                Host = $"{request.Name}.{cludOptions.BaseHostname}",
                                 Http = new HTTPIngressRuleValueV1Beta1
                                 {
                                     Paths =

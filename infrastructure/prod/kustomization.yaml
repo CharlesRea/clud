@@ -1,0 +1,12 @@
+bases:
+- ../base
+resources:
+- hostpath-storage-class.yaml
+patchesStrategicMerge:
+- ingress-routes.yaml
+configMapGenerator:
+- name: clud-server-config
+  literals:    
+  - basehostname=clud.ghyston.com
+generatorOptions:
+  disableNameSuffixHash: true

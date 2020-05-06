@@ -39,9 +39,21 @@ namespace Clud.Api
 
             services.AddTransient<UrlGenerator>();
 
-            var kubeClientOptions = K8sConfig.Load().ToKubeClientOptions();
+            var kubeClientOptions = GetKubeClientOptions();
             kubeClientOptions.KubeNamespace = "default";
             services.AddKubeClient(kubeClientOptions);
+        }
+
+        private static KubeClientOptions GetKubeClientOptions()
+        {
+            if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("KUBERNETES_SERVICE_HOST")))
+            {
+                return K8sConfig.Load().ToKubeClientOptions();
+            }
+            else
+            {
+                return KubeClientOptions.FromPodServiceAccount();
+            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

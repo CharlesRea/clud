@@ -1,0 +1,31 @@
+# This proxy binds port 5000 on the Kubenernetes node to redirect all traffic to the docker registry service.
+# This is needed since k8s can't resolve the registry service DNS name when pulling an image (as the docker engine
+# is not set up to resolve using the normal k8s cluster DNS). Hence we need to bind the port directly.
+# To use this, refer to images as localhost:5000/<image-name> in pod definitions.
+# Based on https://github.com/kubernetes/minikube/blob/master/deploy/addons/registry/registry-proxy.yaml.tmpl
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: registry-proxy
+spec:
+  selector:
+    matchLabels:
+      app: "registry-proxy"
+  template:
+    metadata:
+      labels:
+        app: "registry-proxy"
+    spec:
+      containers:
+      - image: gcr.io/google_containers/kube-registry-proxy:0.4
+        imagePullPolicy: IfNotPresent
+        name: registry-proxy
+        ports:
+        - name: registry
+          containerPort: 80
+          hostPort: 5000
+        env:
+        - name: REGISTRY_HOST
+          value: docker-registry.clud.svc.cluster.local
+        - name: REGISTRY_PORT
+          value: "5000"
