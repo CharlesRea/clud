@@ -15,79 +15,75 @@ namespace Clud.Cli.Commands
 {
     public static class Deploy
     {
-        private const string CommandName = "deploy";
-
-        private const string ConfigArgumentName = "config";
-        private const string DefaultConfigFile = "clud.yaml";
-
         public static Command Command()
         {
-            var command = new Command(CommandName, "Deploy an application to the clud server");
-
-            var configArgument = new Argument(ConfigArgumentName)
+            var command = new Command("deploy", "Deploy an application to the clud server")
             {
-                Description = $"The path to the clud config file. Defaults to '{DefaultConfigFile}'",
-                Arity = ArgumentArity.ZeroOrOne,
-            };
-            configArgument.SetDefaultValue(DefaultConfigFile);
-            command.AddArgument(configArgument);
-
-            var verboseOption = new Option<bool>("--verbose")
-            {
-                Description = "Displays additional output. Useful for debugging",
-                Required = false,
-            };
-            command.AddOption(verboseOption);
-
-            command.Handler = CommandHandler.Create<IConsole, string, bool>(async (console, config, verbose) =>
-            {
-                ConsoleHelpers.PrintLogo();
-
-                var configuration = await GetConfiguration(config);
-                var configFileDirectory = Directory.GetParent(config).FullName;
-
-                var serviceDeployments = new List<CreateDeploymentRequest.Types.ServiceDeploymentDetails>();
-
-                foreach (var serviceConfiguration in configuration.Services)
+                new Argument<string>("config", () => "clud.yaml")
                 {
-                    var serviceDeploymentDetails = await ProcessService(serviceConfiguration, configFileDirectory, verbose);
-                    serviceDeployments.Add(serviceDeploymentDetails);
-                }
-
-                using var channel = GrpcChannel.ForAddress("https://clud.clud.ghyston.com/");
-                var client = new Deployments.DeploymentsClient(channel);
-
-                var deploymentName = configuration.Name.ToLowerInvariant();
-
-                Console.Out.WriteLine();
-                Console.Out.WriteLine("Sending deployment details to the API ...");
-
-                var createDeploymentRequest = new CreateDeploymentRequest
+                    Description = $"The path to the clud config file'",
+                    Arity = ArgumentArity.ZeroOrOne,
+                },
+                new Option<bool>("--verbose")
                 {
-                    Name = deploymentName,
-                    Owner = configuration.Owner,
-                    Description = configuration.Description,
-                    Repository = configuration.Repository,
-                    EntryPoint = configuration.EntryPoint,
-                };
-                createDeploymentRequest.Services.AddRange(serviceDeployments);
+                    Description = "Displays additional output. Useful for debugging",
+                    IsRequired = false,
+                },
+            };
 
-                await client.CreateDeploymentAsync(createDeploymentRequest);
-
-                ConsoleHelpers.WriteSuccess("Successfully sent deployment details.");
-
-                Console.Out.WriteLine();
-                ConsoleHelpers.WriteSuccess($"'{deploymentName}' has been deployed! \\(^?^)/");
-                Console.Out.WriteLine();
-                return 0;
-            });
+            command.Handler = CommandHandler.Create<IConsole, string, bool>(RunDeployment);
 
             return command;
         }
 
-        private static async Task<Configuration> GetConfiguration(string config)
+        private static async Task<int> RunDeployment(IConsole console, string config, bool verbose)
         {
-            Console.Out.WriteLine("Attempting to read configuration file ...");
+            var outputContext = new OutputContext(verbose);
+
+            ConsoleHelpers.PrintLogo();
+
+            var configuration = await GetConfiguration(config, outputContext);
+            var configFileDirectory = Directory.GetParent(config).FullName;
+
+            var serviceDeployments = new List<CreateDeploymentRequest.Types.ServiceDeploymentDetails>();
+
+            foreach (var serviceConfiguration in configuration.Services)
+            {
+                var serviceDeploymentDetails = await ProcessService(serviceConfiguration, configFileDirectory, outputContext);
+                serviceDeployments.Add(serviceDeploymentDetails);
+            }
+
+            using var channel = GrpcChannel.ForAddress("https://clud.clud.ghyston.com/");
+            var client = new Deployments.DeploymentsClient(channel);
+
+            var deploymentName = configuration.Name.ToLowerInvariant();
+
+            outputContext.WriteInfo();
+            outputContext.WriteInfo("Sending deployment details to the API ...");
+
+            var createDeploymentRequest = new CreateDeploymentRequest
+            {
+                Name = deploymentName,
+                Owner = configuration.Owner,
+                Description = configuration.Description,
+                Repository = configuration.Repository,
+                EntryPoint = configuration.EntryPoint,
+            };
+            createDeploymentRequest.Services.AddRange(serviceDeployments);
+
+            await client.CreateDeploymentAsync(createDeploymentRequest);
+
+            outputContext.WriteSuccess("Successfully sent deployment details.");
+
+            outputContext.WriteInfo();
+            outputContext.WriteSuccess($"'{deploymentName}' has been deployed! \\(^?^)/");
+            outputContext.WriteInfo();
+            return 0;
+        }
+
+        private static async Task<Configuration> GetConfiguration(string config, OutputContext outputContext)
+        {
+            outputContext.WriteInfo("Attempting to read configuration file ...");
 
             if (!File.Exists(config))
             {
@@ -104,39 +100,39 @@ namespace Clud.Cli.Commands
                 throw new Exception($"Invalid configuration file.\r\n{string.Join("\r\n", validationErrors?.Select(error => " - " + error) ?? new List<string>())}");
             }
 
-            ConsoleHelpers.WriteSuccess("Configuration file was read successfully.");
-            Console.Out.WriteLine();
+            outputContext.WriteSuccess("Configuration file was read successfully.");
+            outputContext.WriteInfo();
 
             return configuration;
         }
 
-        private static async Task<CreateDeploymentRequest.Types.ServiceDeploymentDetails> ProcessService(ServiceConfiguration serviceConfiguration, string configFileDirectory, bool verbose)
+        private static async Task<CreateDeploymentRequest.Types.ServiceDeploymentDetails> ProcessService(ServiceConfiguration serviceConfiguration, string configFileDirectory, OutputContext outputContext)
         {
-            Console.Out.WriteLine();
-            Console.Out.WriteLine($"Processing service '{serviceConfiguration.Name}' ...");
+            outputContext.WriteInfo();
+            outputContext.WriteInfo($"Processing service '{serviceConfiguration.Name}' ...");
 
             string dockerImage = null;
             var isPublicDockerImage = false;
 
             if (serviceConfiguration.SpecifiesProject)
             {
-                Console.Out.WriteLine("The 'project' option was detected - clud will attempt to build a suitable image by inspecting your code.");
+                outputContext.WriteInfo("The 'project' option was detected - clud will attempt to build a suitable image by inspecting your code.");
                 throw new NotImplementedException("Producing a suitable Docker image from a project file is not supported yet");
             }
             else if (serviceConfiguration.SpecifiesDockerfile)
             {
-                Console.Out.WriteLine("The 'dockerfile' option was detected - an image will be built and pushed to the remote registry.");
-                dockerImage = await BuildDockerImageFromDockerfile(serviceConfiguration, configFileDirectory, verbose);
+                outputContext.WriteInfo("The 'dockerfile' option was detected - an image will be built and pushed to the remote registry.");
+                dockerImage = await BuildDockerImageFromDockerfile(serviceConfiguration, configFileDirectory, outputContext);
             }
             else if (serviceConfiguration.SpecifiesDockerImage)
             {
-                Console.Out.WriteLine("The 'dockerImage' option was detected - the name of the public image will be passed to the API.");
+                outputContext.WriteInfo("The 'dockerImage' option was detected - the name of the public image will be passed to the API.");
                 dockerImage = serviceConfiguration.DockerImage;
                 isPublicDockerImage = true;
             }
 
-            Console.Out.WriteLine();
-            ConsoleHelpers.WriteSuccess($"Successfully processed '{serviceConfiguration.Name}'.");
+            outputContext.WriteInfo();
+            outputContext.WriteSuccess($"Successfully processed '{serviceConfiguration.Name}'.");
 
             return new CreateDeploymentRequest.Types.ServiceDeploymentDetails
             {
@@ -147,10 +143,10 @@ namespace Clud.Cli.Commands
             };
         }
 
-        private static async Task<string> BuildDockerImageFromDockerfile(ServiceConfiguration configuration, string configFileDirectory, bool verbose)
+        private static async Task<string> BuildDockerImageFromDockerfile(ServiceConfiguration configuration, string configFileDirectory, OutputContext outputContext)
         {
-            Console.Out.WriteLine();
-            Console.Out.WriteLine("Attempting to locate Dockerfile ...");
+            outputContext.WriteInfo();
+            outputContext.WriteInfo("Attempting to locate Dockerfile ...");
 
             var dockerfilePath = Path.GetFullPath(configuration.Dockerfile, configFileDirectory);
 
@@ -159,10 +155,10 @@ namespace Clud.Cli.Commands
                 throw new Exception($"Could not locate Dockerfile at '{dockerfilePath}'");
             }
 
-            ConsoleHelpers.WriteSuccess("Dockerfile was located successfully.");
+            outputContext.WriteSuccess("Dockerfile was located successfully.");
 
-            Console.Out.WriteLine();
-            Console.Out.WriteLine("Building the Docker image ...");
+            outputContext.WriteInfo();
+            outputContext.WriteInfo("Building the Docker image ...");
 
             var dockerBuildPath = string.IsNullOrEmpty(configuration.DockerBuildPath)
                 ? Directory.GetParent(dockerfilePath).FullName
@@ -170,18 +166,18 @@ namespace Clud.Cli.Commands
 
             var imageName = configuration.Name.ToLowerInvariant();
             var tag = Guid.NewGuid().ToString().Substring(0, 8);
-            await CommandLineHelpers.ExecuteCommand($"docker build -t {imageName} -f {dockerfilePath} {dockerBuildPath}", verbose);
+            await CommandLineHelpers.ExecuteCommand($"docker build -t {imageName} -f {dockerfilePath} {dockerBuildPath}", outputContext);
 
-            Console.Out.WriteLine();
-            ConsoleHelpers.WriteSuccess("Successfully built the Docker image.");
+            outputContext.WriteInfo();
+            outputContext.WriteSuccess("Successfully built the Docker image.");
 
-            Console.Out.WriteLine();
-            Console.Out.WriteLine("Pushing the Docker image to the remote registry ...");
+            outputContext.WriteInfo();
+            outputContext.WriteInfo("Pushing the Docker image to the remote registry ...");
             const string registryLocation = "registry.clud.ghyston.com"; // TODO - Parameterize per environment
-            await CommandLineHelpers.ExecuteCommand($"docker tag {imageName} {registryLocation}/{imageName}:{tag}", verbose);
-            await CommandLineHelpers.ExecuteCommand($"docker push {registryLocation}/{imageName}:{tag}", verbose);
-            Console.Out.WriteLine();
-            ConsoleHelpers.WriteSuccess("Successfully pushed the Docker image.");
+            await CommandLineHelpers.ExecuteCommand($"docker tag {imageName} {registryLocation}/{imageName}:{tag}", outputContext);
+            await CommandLineHelpers.ExecuteCommand($"docker push {registryLocation}/{imageName}:{tag}", outputContext);
+            outputContext.WriteInfo();
+            outputContext.WriteSuccess("Successfully pushed the Docker image.");
 
            return $"{imageName}:{tag}";
         }

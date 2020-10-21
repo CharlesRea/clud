@@ -1,6 +1,6 @@
 using System;
 
-namespace Onepost.Matrix.Migrations
+namespace Migrations
 {
     public static class ConsoleUtils
     {

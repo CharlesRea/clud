@@ -143,13 +143,6 @@ namespace Clud.Api.Features
                                 }
                             }
                         },
-                        // TODO Traefik doesn't pick up the Ingress rule if the TLS entry is defined. However it works
-                        // fine since apparently Traefik just registers the Traefik-UI ingress rule to apply to every
-                        // endpoint, and since the cert is a wildcard cert this continues to be accessible over HTTPS...
-                        // Tls =
-                        // {
-                        //     new IngressTLSV1Beta1 { SecretName = "traefik-tls-cert" },
-                        // }
                     },
                 };
 

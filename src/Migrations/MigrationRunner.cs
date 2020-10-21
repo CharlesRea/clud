@@ -1,12 +1,10 @@
-﻿﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System;
 using System.Reflection;
- using CommandLine;
- using DbUp;
- using DbUp.Helpers;
+using CommandLine;
+using DbUp;
+using DbUp.Helpers;
 
- namespace Onepost.Matrix.Migrations
+namespace Migrations
 {
     public class MigrationRunner
     {
