@@ -7,6 +7,7 @@ using System.CommandLine.IO;
 using System.CommandLine.Parsing;
 using System.Threading.Tasks;
 using Clud.Cli.Helpers;
+using Microsoft.Extensions.Configuration;
 
 namespace Clud.Cli
 {

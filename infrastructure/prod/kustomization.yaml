@@ -4,6 +4,7 @@ resources:
 - hostpath-storage-class.yaml
 patchesStrategicMerge:
 - ingress-routes.yaml
+namespace: clud
 configMapGenerator:
 - name: clud-server-config
   literals:    

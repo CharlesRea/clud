@@ -77,7 +77,7 @@ metadata:
     ingress.kubernetes.io/protocol: h2c
 spec:
   rules:
-  - host: clud.clud
+  - host: clud.clud.local
     http:
       paths:
       - path: /

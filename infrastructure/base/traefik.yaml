@@ -125,7 +125,7 @@ metadata:
   name: traefik-web-ui
 spec:
   rules:
-  - host: traefik.clud
+  - host: traefik.clud.local
     http:
       paths:
       - path: /

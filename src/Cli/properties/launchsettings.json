@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Cli": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "environmentVariables": {
+        "CLUD_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

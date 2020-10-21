@@ -38,12 +38,12 @@ Have a readthrough of the [Design Spec](./docs/01_DesignSpec.md) to understand t
     Traefik, which will route the traffic to the correct Kubernetes service based on the request hostname. (In Kubernetes
     terms, it's an Ingress controller.
   * Postgres DB, accessible on your local machine (once you've set up hosts entries as below) at
-    `Host=postgres.clud;Port=30432;Database=clud;Username=clud;Password=supersecret`
+    `Host=clud.local;Port=30432;Database=clud;Username=clud;Password=supersecret`
   * A Docker registry
 * Add hosts file entries:
   * In an admin terminal run `minikube ip` to get the Minikube IP
-  * Add a hosts file entry for `<minikube-ip> clud clud.clud traefik.clud postgres.clud registry.clud` (in Windows, the hosts file is at `C:\Windows\System32\drivers\etc\hosts`)
-  * Check you can access http://traefik.clud,  https://traefik.clud (you may get a security warning as modern browsers don't like self-signed certificates - just click through)
+  * Add a hosts file entry for `<minikube-ip> clud.local clud.clud.local traefik.clud.local registry.clud.local` (in Windows, the hosts file is at `C:\Windows\System32\drivers\etc\hosts`)
+  * Check you can access http://traefik.clud.local,  https://traefik.clud.local
 * Unfortunately, on Windows, our local Docker engine cannot directly talk to Minikube (as they're in different HyperV
   containers, and so different networks). So we need to set up a proxy to allow them to communicate.
   * Run (and keep running) `./build RegistryProxy`

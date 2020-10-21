@@ -53,7 +53,7 @@ namespace Clud.Cli.Commands
                 serviceDeployments.Add(serviceDeploymentDetails);
             }
 
-            using var channel = GrpcChannel.ForAddress("https://clud.clud.ghyston.com/");
+            using var channel = GrpcChannel.ForAddress(CludOptions.ServerUri);
             var client = new Deployments.DeploymentsClient(channel);
 
             var deploymentName = configuration.Name.ToLowerInvariant();
@@ -165,7 +165,8 @@ namespace Clud.Cli.Commands
                 : Path.GetFullPath(configuration.DockerBuildPath, configFileDirectory);
 
             var imageName = configuration.Name.ToLowerInvariant();
-            var tag = Guid.NewGuid().ToString().Substring(0, 8);
+            var tagVersion = Guid.NewGuid().ToString().Substring(0, 8);
+            var imageTag = $"{imageName}:{tagVersion}";
             await CommandLineHelpers.ExecuteCommand($"docker build -t {imageName} -f {dockerfilePath} {dockerBuildPath}", outputContext);
 
             outputContext.WriteInfo();
@@ -173,13 +174,12 @@ namespace Clud.Cli.Commands
 
             outputContext.WriteInfo();
             outputContext.WriteInfo("Pushing the Docker image to the remote registry ...");
-            const string registryLocation = "registry.clud.ghyston.com"; // TODO - Parameterize per environment
-            await CommandLineHelpers.ExecuteCommand($"docker tag {imageName} {registryLocation}/{imageName}:{tag}", outputContext);
-            await CommandLineHelpers.ExecuteCommand($"docker push {registryLocation}/{imageName}:{tag}", outputContext);
+            await CommandLineHelpers.ExecuteCommand($"docker tag {imageName} {CludOptions.Registry}/{imageTag}", outputContext);
+            await CommandLineHelpers.ExecuteCommand($"docker push {CludOptions.Registry}/{imageTag}", outputContext);
             outputContext.WriteInfo();
             outputContext.WriteSuccess("Successfully pushed the Docker image.");
 
-           return $"{imageName}:{tag}";
+            return imageTag;
         }
     }
 }

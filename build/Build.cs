@@ -51,7 +51,7 @@ namespace Clud.Build
 
         public string SqlConnectionStringOrDefault =>
             SqlConnectionString ?? (Environment == Environment.LocalDev
-                ? "Host=postgres.clud;Port=30432;Database=clud;Username=clud;Password=supersecret"
+                ? "Host=clud.local;Port=30432;Database=clud;Username=clud;Password=supersecret"
                 : null);
 
         string DockerRegistry => Environment switch
@@ -99,8 +99,8 @@ namespace Clud.Build
         Target ConfigureHelm => _ => _
             .Executes(() =>
             {
-                // HelmTasks.Helm("repo add stable https://kubernetes-charts.storage.googleapis.com/");
-                // HelmTasks.HelmRepoUpdate();
+                HelmTasks.Helm("repo add stable https://kubernetes-charts.storage.googleapis.com/");
+                HelmTasks.HelmRepoUpdate();
             });
 
         Target CreateRegistry => _ => _

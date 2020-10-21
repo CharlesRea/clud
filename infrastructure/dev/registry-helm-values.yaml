@@ -1,7 +1,7 @@
 ingress:
   enabled: true
   hosts:
-    - registry.clud
+    - registry.clud.local
 
 persistence:
   enabled: true
