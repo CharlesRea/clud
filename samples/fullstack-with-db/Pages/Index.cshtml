@@ -1,0 +1,12 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "My Example App";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Full Stack example</h1>
+    <p>EXAMPLE_ENVIRONMENT_VARIABLE: @Environment.GetEnvironmentVariable("EXAMPLE_ENVIRONMENT_VARIABLE")</p>
+    <p>Example Secret value: @Environment.GetEnvironmentVariable("ExampleSecret")</p>
+    <p>Value from DB: @Model.DbResult</p>
+</div>

@@ -1,4 +1,8 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Clud.Api.Infrastructure.DataAccess;
 using Clud.Grpc;
@@ -20,8 +24,14 @@ namespace Clud.Api.Features
         private readonly ILogger<DeploymentsService> logger;
 
         private const string DockerRegistryLocation = "localhost:5000";
+        private const string EntryPointIngressName = "entry-point";
 
-        public DeploymentsService(DataContext dataContext, KubeApiClient kubeApiClient, IOptions<CludOptions> cludOptions, ILogger<DeploymentsService> logger)
+        public DeploymentsService(
+            DataContext dataContext,
+            KubeApiClient kubeApiClient,
+            IOptions<CludOptions> cludOptions,
+            ILogger<DeploymentsService> logger
+        )
         {
             this.dataContext = dataContext;
             this.kubeApiClient = kubeApiClient;
@@ -29,139 +39,23 @@ namespace Clud.Api.Features
             this.logger = logger;
         }
 
-        public override async Task<CreateDeploymentResponse> CreateDeployment(CreateDeploymentRequest request, ServerCallContext context)
+        public override async Task<DeploymentResponse> DeployApplication(DeployCommand command, ServerCallContext context)
         {
-            var kubeNamespace = request.Name;
+            var kubeNamespace = command.Name;
 
-            var namespaceDto = new NamespaceV1
-            {
-                Metadata = new ObjectMetaV1 { Name = kubeNamespace },
-            };
-            await kubeApiClient.Dynamic().Apply(namespaceDto, fieldManager: "clud", force: true);
-
-            foreach (var serviceRequest in request.Services)
-            {
-                var serviceName = serviceRequest.ServiceName;
-
-                var deployment = new DeploymentV1
-                {
-                    Metadata = new ObjectMetaV1
-                    {
-                        Name = serviceName,
-                        Namespace = kubeNamespace,
-                    },
-                    Spec = new DeploymentSpecV1
-                    {
-                        Selector = new LabelSelectorV1
-                        {
-                            MatchLabels = {{ KubeNaming.AppLabelKey, serviceName }},
-                        },
-                        Template = new PodTemplateSpecV1
-                        {
-                            Metadata = new ObjectMetaV1
-                            {
-                                Name = serviceName,
-                                Namespace = kubeNamespace,
-                                Labels = {{ KubeNaming.AppLabelKey, serviceName }}
-                            },
-                            Spec = new PodSpecV1
-                            {
-                                Containers =
-                                {
-                                    new ContainerV1
-                                    {
-                                        Name = serviceName,
-                                        Image = serviceRequest.IsPublicDockerImage
-                                            ? serviceRequest.DockerImage
-                                            : $"{DockerRegistryLocation}/{serviceRequest.DockerImage}",
-                                    }
-                                }
-                            }
-                        }
-                    }
-                };
-
-                await kubeApiClient.Dynamic().Apply(deployment, fieldManager: "clud", force: true);
-
-                var service = new ServiceV1
-                {
-                    Metadata = new ObjectMetaV1
-                    {
-                        Name = serviceName,
-                        Namespace = kubeNamespace,
-                    },
-                    Spec = new ServiceSpecV1
-                    {
-                        Selector = {{ KubeNaming.AppLabelKey, deployment.Spec.Template.Metadata.Labels["App"] }},
-                        Ports =
-                        {
-                            // TODO - Allow multiple port bindings
-                            new ServicePortV1
-                            {
-                                Name = KubeNaming.ServiceDefaultPortName,
-                                Protocol = "TCP",
-                                Port = serviceRequest.Port, // This is the inbound port on the Service
-                                TargetPort = serviceRequest.Port, // This is the inbound port on the Pod (i.e. the underlying application)
-                            }
-                        }
-                    },
-                };
-
-                await kubeApiClient.Dynamic().Apply(service, fieldManager: "clud", force: true);
-
-                // We only create an ingress rule for the entry point - all other services are only accessed from within the cluster
-                if (serviceName != request.EntryPoint) continue;
-
-                var ingress = new IngressV1Beta1
-                {
-                    Metadata = new ObjectMetaV1
-                    {
-                        Name = serviceName,
-                        Namespace = kubeNamespace,
-                    },
-                    Spec = new IngressSpecV1Beta1
-                    {
-                        Rules =
-                        {
-                            new IngressRuleV1Beta1
-                            {
-                                Host = $"{request.Name}.{cludOptions.BaseHostname}",
-                                Http = new HTTPIngressRuleValueV1Beta1
-                                {
-                                    Paths =
-                                    {
-                                        new HTTPIngressPathV1Beta1
-                                        {
-                                            Path = "/",
-                                            Backend = new IngressBackendV1Beta1
-                                            {
-                                                ServiceName = service.Metadata.Name,
-                                                ServicePort = service.Spec.Ports.Single().Name,
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                    },
-                };
-
-                await kubeApiClient.Dynamic().Apply(ingress, fieldManager: "clud", force: true);
-            }
+            await CreateNamespace(kubeNamespace);
+            var serviceResources  = await DeployServices(command, kubeNamespace);
+            var entryPointIngress = await CreateEntryPointIngress(command, kubeNamespace);
+            await CleanUpResources(serviceResources, kubeNamespace);
 
             var application = await dataContext.Applications
                 .Include(a => a.Services)
-                .SingleOrDefaultAsync(a => a.Name == request.Name);
+                .SingleOrDefaultAsync(a => a.Name == command.Name);
             var applicationExists = application != null;
 
             if (applicationExists)
             {
-                var (newServices, deletedServices) = application.Update(request);
-
-                foreach (var deletedService in deletedServices)
-                {
-                    await kubeApiClient.ServicesV1().Delete(deletedService.Name, kubeNamespace);
-                }
+                var (newServices, deletedServices) = application.Update(command);
 
                 var historyMessage =
                     $"Update deployed"
@@ -174,20 +68,490 @@ namespace Clud.Api.Features
 
             if (!applicationExists)
             {
-                application = new Application(request);
+                application = new Application(command);
                 dataContext.Applications.Add(application);
                 await dataContext.SaveChangesAsync();
                 dataContext.ApplicationHistories.Add(new ApplicationHistory(
                     application,
-                    $"Application created, with services {string.Join(", ", application.Services.Select(s => s.Name))}"
+                    $"{application.Name} created!"
                 ));
                 await dataContext.SaveChangesAsync();
             }
 
-            return new CreateDeploymentResponse();
-            // TODO return a URL to the CLI
-            // - URL of the app?
-            // - clud URL to see status?
+            return new DeploymentResponse
+            {
+                ManagementUrl = $"https://clud.{cludOptions.BaseHostname}/applications/{command.Name}",
+                IngressUrl = entryPointIngress != null ? "https://" + entryPointIngress.Spec.Rules.Single().Host : null,
+                Services =
+                {
+                    serviceResources.Select(service => new DeploymentResponse.Types.Service
+                    {
+                        Name = service.Service.Metadata.Name,
+                        InternalHostname = $"{service.Service.Metadata.Name}.{service.Service.Metadata.Namespace}",
+                        IngressUrl = service.Ingress != null
+                            ? "https://" + service.Ingress.Spec.Rules.Single().Host
+                            : null,
+                        Ports =
+                        {
+                            service.Service.Spec.Ports
+                                .Where(port => port.Name != KubeNaming.HttpPortName)
+                                .Select(port => new DeploymentResponse.Types.Port
+                                {
+                                    TargetPort = port.TargetPort.Int32Value,
+                                    ExposedPort = port.NodePort,
+                                    HostName = $"{command.Name}.{cludOptions.BaseHostname}",
+                                    Type = port.Protocol,
+                                })
+                        }
+                    })
+                }
+            };
+        }
+
+        private async Task CreateNamespace(string kubeNamespace)
+        {
+            var namespaceDto = new NamespaceV1
+            {
+                Metadata = new ObjectMetaV1 { Name = kubeNamespace },
+            };
+            await kubeApiClient.Dynamic().Apply(namespaceDto, fieldManager: "clud", force: true);
+        }
+
+        private async Task<IReadOnlyCollection<ServiceResources>> DeployServices(DeployCommand command, string kubeNamespace)
+        {
+            var resources = new List<ServiceResources>();
+            foreach (var serviceCommand in command.Services)
+            {
+                resources.Add(await DeployService(serviceCommand, kubeNamespace));
+            }
+
+            return resources;
+        }
+
+        private async Task<ServiceResources> DeployService(DeployCommand.Types.Service command, string kubeNamespace)
+        {
+            DeploymentV1 deployment = null;
+            StatefulSetV1 statefulSet = null;
+
+            var secret = await CreateSecret();
+
+            if (string.IsNullOrWhiteSpace(command.PersistentStoragePath))
+            {
+                deployment = await CreateDeployment();
+            }
+            else
+            {
+                statefulSet = await CreateStatefulSet();
+            }
+
+            var service = await CreateService();
+            var ingress = await CreateServiceIngress();
+
+            return new ServiceResources(deployment, statefulSet, service, ingress, secret);
+
+            async Task<SecretV1> CreateSecret()
+            {
+                if (!command.Secrets.Any())
+                {
+                    return null;
+                }
+
+                var existingSecret = await kubeApiClient.SecretsV1().Get(command.Name, kubeNamespace);
+                var secretResource = new SecretV1
+                {
+                    Metadata = new ObjectMetaV1
+                    {
+                        Name = command.Name,
+                        Namespace = kubeNamespace,
+                    },
+                    Type = "Opaque",
+                };
+
+                if (existingSecret != null)
+                {
+                    foreach (var existingData in existingSecret.Data)
+                    {
+                        secretResource.Data[existingData.Key] = existingData.Value;
+                    }
+                }
+
+                foreach (var secret in command.Secrets.Where(s => s.Value != null))
+                {
+                    secretResource.Data[secret.Name] = Convert.ToBase64String(Encoding.UTF8.GetBytes(secret.Value));
+                }
+
+                foreach (var existingSecretNames in secretResource.Data.Keys)
+                {
+                    if (command.Secrets.All(secret => secret.Name != existingSecretNames))
+                    {
+                        secretResource.Data.Remove(existingSecretNames);
+                    }
+                }
+
+                return await kubeApiClient.Dynamic().Apply(secretResource, fieldManager: "clud", force: true);
+            }
+
+            async Task<DeploymentV1> CreateDeployment()
+            {
+                var deployment = new DeploymentV1
+                {
+                    Metadata = new ObjectMetaV1
+                    {
+                        Name = command.Name,
+                        Namespace = kubeNamespace,
+                    },
+                    Spec = new DeploymentSpecV1
+                    {
+                        Selector = new LabelSelectorV1
+                        {
+                            MatchLabels = { { KubeNaming.AppLabelKey, command.Name } },
+                        },
+                        Replicas = command.Replicas,
+                        Template = new PodTemplateSpecV1
+                        {
+                            Metadata = new ObjectMetaV1
+                            {
+                                Name = command.Name,
+                                Namespace = kubeNamespace,
+                                Labels = { { KubeNaming.AppLabelKey, command.Name } }
+                            },
+                            Spec = new PodSpecV1
+                            {
+                                Containers =
+                                {
+                                    new ContainerV1
+                                    {
+                                        Name = command.Name,
+                                        Image = DockerImageName(),
+                                    }
+                                },
+                            },
+                        }
+                    }
+                };
+
+                AddEnvironmentVariables(deployment.Spec.Template.Spec.Containers.Single().Env);
+
+                return await kubeApiClient.Dynamic().Apply(deployment, fieldManager: "clud", force: true);
+            }
+
+            async Task<StatefulSetV1> CreateStatefulSet()
+            {
+                var statefulSet = new StatefulSetV1
+                {
+                    Metadata = new ObjectMetaV1
+                    {
+                        Name = command.Name,
+                        Namespace = kubeNamespace,
+                    },
+                    Spec = new StatefulSetSpecV1
+                    {
+                        Selector = new LabelSelectorV1
+                        {
+                            MatchLabels = { { KubeNaming.AppLabelKey, command.Name } },
+                        },
+                        Template = new PodTemplateSpecV1
+                        {
+                            Metadata = new ObjectMetaV1
+                            {
+                                Name = command.Name,
+                                Namespace = kubeNamespace,
+                                Labels = { { KubeNaming.AppLabelKey, command.Name } }
+                            },
+                            Spec = new PodSpecV1
+                            {
+                                Containers =
+                                {
+                                    new ContainerV1
+                                    {
+                                        Name = command.Name,
+                                        Image = DockerImageName(),
+                                        VolumeMounts = { new VolumeMountV1
+                                        {
+                                            Name = command.Name,
+                                            MountPath = command.PersistentStoragePath,
+                                        }}
+                                    },
+                                },
+                            },
+                        },
+                        VolumeClaimTemplates =
+                        {
+                            new PersistentVolumeClaimV1
+                            {
+                                Metadata = new ObjectMetaV1
+                                {
+                                    Name = command.Name,
+                                    Namespace = kubeNamespace,
+                                },
+                                Spec = new PersistentVolumeClaimSpecV1
+                                {
+                                    AccessModes = { "ReadWriteOnce" },
+                                    Resources = new ResourceRequirementsV1
+                                    {
+                                        Requests = {{ "storage", "100Mi" }},
+                                    }
+                                }
+                            }
+                        }
+                    }
+                };
+
+                AddEnvironmentVariables(statefulSet.Spec.Template.Spec.Containers.Single().Env);
+
+                return await kubeApiClient.Dynamic().Apply(statefulSet, fieldManager: "clud", force: true);
+            }
+
+            string DockerImageName()
+            {
+                return command.IsPublicDockerImage
+                    ? command.DockerImage
+                    : $"{DockerRegistryLocation}/{command.DockerImage}";
+            }
+
+            void AddEnvironmentVariables(List<EnvVarV1> envVarV1s)
+            {
+                envVarV1s.AddRange(command.EnvironmentVariables.Select(env => new EnvVarV1
+                {
+                    Name = env.Name,
+                    Value = env.Value
+                }));
+
+                envVarV1s.AddRange(command.Secrets.Select(secret => new EnvVarV1
+                {
+                    Name = secret.Name,
+                    ValueFrom = new EnvVarSourceV1
+                    {
+                        SecretKeyRef = new SecretKeySelectorV1
+                        {
+                            Name = command.Name,
+                            Key = secret.Name,
+                            Optional = false,
+                        }
+                    }
+                }));
+            }
+
+
+            async Task<ServiceV1> CreateService()
+            {
+                var service = new ServiceV1
+                {
+                    Metadata = new ObjectMetaV1
+                    {
+                        Name = command.Name,
+                        Namespace = kubeNamespace,
+                    },
+                    Spec = new ServiceSpecV1
+                    {
+                        Selector = { { KubeNaming.AppLabelKey, command.Name } },
+                    },
+                };
+
+                if (command.HttpPort != null)
+                {
+                    service.Spec.Ports.Add(new ServicePortV1
+                    {
+                        Name = KubeNaming.HttpPortName,
+                        Protocol = "TCP",
+                        Port = command.HttpPort.Value
+                    });
+                }
+
+                service.Spec.Ports.AddRange(command.TcpPorts.Select(port => new ServicePortV1
+                {
+                    Name = $"tcp-{port}",
+                    Protocol = "TCP",
+                    Port = port,
+                }));
+
+                service.Spec.Ports.AddRange(command.UdpPorts.Select(port => new ServicePortV1
+                {
+                    Name = $"udp-{port}",
+                    Protocol = "UDP",
+                    Port = port,
+                }));
+
+                return await kubeApiClient.Dynamic().Apply(service, fieldManager: "clud", force: true);
+            }
+
+            async Task<IngressV1Beta1> CreateServiceIngress()
+            {
+                if (command.HttpPort == null)
+                {
+                    return null;
+                }
+
+                var ingress = new IngressV1Beta1
+                {
+                    Metadata = new ObjectMetaV1
+                    {
+                        Name = command.Name,
+                        Namespace = kubeNamespace,
+                    },
+                    Spec = new IngressSpecV1Beta1
+                    {
+                        Rules =
+                        {
+                            new IngressRuleV1Beta1
+                            {
+                                Host = $"{command.Name}-{kubeNamespace}.{cludOptions.BaseHostname}",
+                                Http = new HTTPIngressRuleValueV1Beta1
+                                {
+                                    Paths =
+                                    {
+                                        new HTTPIngressPathV1Beta1
+                                        {
+                                            Path = "/",
+                                            Backend = new IngressBackendV1Beta1
+                                            {
+                                                ServiceName = service.Metadata.Name,
+                                                ServicePort = KubeNaming.HttpPortName,
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                    },
+                };
+
+                return await kubeApiClient.Dynamic().Apply(ingress, fieldManager: "clud", force: true);
+            }
+        }
+
+        private class ServiceResources
+        {
+            public DeploymentV1 Deployment { get; }
+            public StatefulSetV1 StatefulSet { get; }
+            public ServiceV1 Service { get; }
+            public IngressV1Beta1 Ingress { get; }
+            public SecretV1 Secret { get; }
+
+            public ServiceResources(DeploymentV1 deployment, StatefulSetV1 statefulSet, ServiceV1 service, IngressV1Beta1 ingress, SecretV1 secret)
+            {
+                Deployment = deployment;
+                StatefulSet = statefulSet;
+                Service = service;
+                Ingress = ingress;
+                Secret = secret;
+            }
+        }
+
+        private async Task<IngressV1Beta1> CreateEntryPointIngress(DeployCommand deployCommand, string kubeNamespace)
+        {
+            if (string.IsNullOrWhiteSpace(deployCommand.EntryPoint))
+            {
+                await DeleteExistingIngress();
+                return null;
+            }
+            else
+            {
+                return await CreateIngress();
+            }
+
+            async Task DeleteExistingIngress()
+            {
+                await kubeApiClient.IngressesV1Beta1().Delete(EntryPointIngressName, kubeNamespace);
+            }
+
+            async Task<IngressV1Beta1> CreateIngress()
+            {
+                var ingress = new IngressV1Beta1
+                {
+                    Metadata = new ObjectMetaV1
+                    {
+                        Name = EntryPointIngressName,
+                        Namespace = kubeNamespace,
+                    },
+                    Spec = new IngressSpecV1Beta1
+                    {
+                        Rules =
+                        {
+                            new IngressRuleV1Beta1
+                            {
+                                Host = $"{deployCommand.Name}.{cludOptions.BaseHostname}",
+                                Http = new HTTPIngressRuleValueV1Beta1
+                                {
+                                    Paths =
+                                    {
+                                        new HTTPIngressPathV1Beta1
+                                        {
+                                            Path = "/",
+                                            Backend = new IngressBackendV1Beta1
+                                            {
+                                                ServiceName = deployCommand.EntryPoint,
+                                                ServicePort = KubeNaming.HttpPortName,
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                    },
+                };
+
+                return await kubeApiClient.Dynamic().Apply(ingress, fieldManager: "clud", force: true);
+            }
+        }
+
+        private async Task CleanUpResources(IReadOnlyCollection<ServiceResources> expectedResources, string kubeNamespace)
+        {
+            await CleanupServices();
+            await CleanupDeployments();
+            await CleanupStatefulSets();
+            await CleanupIngresses();
+            await CleanupSecrets();
+
+            async Task CleanupServices()
+            {
+                var allServices = await kubeApiClient.ServicesV1().List(kubeNamespace: kubeNamespace);
+                foreach (var service in allServices.Items.Where(service =>
+                    expectedResources.All(r => r.Service.Metadata.Name != service.Metadata.Name)))
+                {
+                    await kubeApiClient.ServicesV1().Delete(service.Metadata.Name, kubeNamespace);
+                }
+            }
+
+            async Task CleanupDeployments()
+            {
+                var allDeployments = await kubeApiClient.DeploymentsV1().List(kubeNamespace: kubeNamespace);
+                foreach (var deployment in allDeployments.Items.Where(deployment =>
+                    expectedResources.All(r => r.Deployment?.Metadata.Name != deployment.Metadata.Name)))
+                {
+                    await kubeApiClient.DeploymentsV1().Delete(deployment.Metadata.Name, kubeNamespace);
+                }
+            }
+
+            async Task CleanupIngresses()
+            {
+                var allIngresses = await kubeApiClient.IngressesV1Beta1().List(kubeNamespace: kubeNamespace);
+                foreach (var ingress in allIngresses.Items.Where(ingress =>
+                    expectedResources.All(r => r.Ingress?.Metadata.Name != ingress.Metadata.Name) && ingress.Metadata.Name != EntryPointIngressName))
+                {
+                    await kubeApiClient.IngressesV1Beta1().Delete(ingress.Metadata.Name, kubeNamespace);
+                }
+            }
+
+            async Task CleanupStatefulSets()
+            {
+                var allStatefulSets = await kubeApiClient.StatefulSetV1().List(kubeNamespace: kubeNamespace);
+                foreach (var statefulSet in allStatefulSets.Items.Where(statefulSet =>
+                    expectedResources.All(r => r.StatefulSet?.Metadata.Name != statefulSet.Metadata.Name)))
+                {
+                    await kubeApiClient.StatefulSetV1().Delete(statefulSet.Metadata.Name, kubeNamespace);
+                }
+            }
+
+            async Task CleanupSecrets()
+            {
+                var allSecrets = await kubeApiClient.SecretsV1().List(kubeNamespace: kubeNamespace);
+                foreach (var secret in allSecrets.Items.Where(secret =>
+                    expectedResources.All(r => r.Secret?.Metadata.Name != secret.Metadata.Name)))
+                {
+                    await kubeApiClient.SecretsV1().Delete(secret.Metadata.Name, kubeNamespace);
+                }
+            }
         }
     }
 }

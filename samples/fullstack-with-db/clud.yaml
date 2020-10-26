@@ -1,0 +1,24 @@
+name: fullstack-db
+description: Example of Razor Pages, talking to a Postgres DB, including configuration and secrets.
+entryPoint: web
+services:
+  - name: web
+    dockerfile: ./dockerfile
+    httpPort: 80
+    environmentVariables:
+      EXAMPLE_ENVIRONMENT_VARIABLE: A value!
+    secrets:
+      - ExampleSecret
+      - ConnectionString
+
+  - name: db
+    dockerImage: postgres:10.12
+    tcpPorts:
+      - 5432
+    persistentStoragePath: /var/lib/postgresql/data
+    environmentVariables:
+      POSTGRES_DB: db
+      POSTGRES_USER: user
+    secrets:
+      - POSTGRES_PASSWORD
+

@@ -63,7 +63,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        application = await applicationsClient.GetApplicationAsync(new GetApplicationRequest { Name = ApplicationName });
+        application = await applicationsClient.GetApplicationAsync(new ApplicationQuery { Name = ApplicationName });
     }
 
 }

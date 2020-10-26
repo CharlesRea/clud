@@ -4,6 +4,7 @@ CREATE TABLE applications (
    description text NOT NULL,
    owner text NOT NULL,
    repository text NOT NULL,
+   config_yaml text NOT NULL,
    updated_date_time timestamptz NOT NULL
 );
 

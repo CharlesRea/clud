@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <Watch Include="..\Web\**\*.razor" />
+    <Watch Include="..\protos\**\*.proto" />
   </ItemGroup>
 
   <Target Name="PublishRunWebpack" BeforeTargets="BeforePublish">

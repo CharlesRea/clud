@@ -27,7 +27,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        applicationsResponse = await applicationsClient.ListApplicationsAsync(new ListApplicationsRequest());
+        applicationsResponse = await applicationsClient.ListApplicationsAsync(new ListApplicationsQuery());
     }
 
 }

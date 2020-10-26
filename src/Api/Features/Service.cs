@@ -10,14 +10,14 @@ namespace Clud.Api.Features
 
         private Service() { }
 
-        public Service(CreateDeploymentRequest.Types.ServiceDeploymentDetails service)
+        public Service(DeployCommand.Types.Service service)
         {
-            Name = service.ServiceName;
+            Name = service.Name;
         }
 
-        public void Update(CreateDeploymentRequest.Types.ServiceDeploymentDetails service)
+        public void Update(DeployCommand.Types.Service service)
         {
-            Name = service.ServiceName;
+            Name = service.Name;
         }
     }
 }

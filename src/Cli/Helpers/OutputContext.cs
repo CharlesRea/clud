@@ -1,44 +1,58 @@
 using System;
+using System.Threading.Tasks;
 
 namespace Clud.Cli.Helpers
 {
     public class OutputContext
     {
-        public bool Verbose { get; }
+        public bool IsVerbose { get; }
 
-        public OutputContext(bool verbose)
+        public OutputContext(bool isVerbose)
         {
-            Verbose = verbose;
+            IsVerbose = isVerbose;
         }
 
-        public void WriteInfo()
+        public void Info()
         {
             Console.Out.WriteLine();
         }
 
-        public void WriteInfo(string message)
+        public void Info(string message)
         {
             Console.Out.WriteLine(message);
         }
 
-        public void WriteVerbose(string message)
+        public void Verbose(string message)
         {
-            if (Verbose)
+            if (IsVerbose)
             {
                 Console.Out.WriteLine(message);
             }
         }
 
-        public void WriteSuccess(string message)
+        public void Success(string message)
         {
             Console.ForegroundColor = ConsoleColor.Green;
             Console.Out.WriteLine(message);
             Console.ResetColor();
         }
 
-        public void WriteError(string message)
+        public void Warning(string message)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkYellow;
+            Console.Out.WriteLine(message);
+            Console.ResetColor();
+        }
+
+        public void Error(string message)
         {
             Console.Error.WriteLine(message);
+        }
+
+        public async Task<string> GetInputValue(string message)
+        {
+            await Console.Out.WriteLineAsync(message);
+            return await Console.In.ReadLineAsync();
         }
     }
 }

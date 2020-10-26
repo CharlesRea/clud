@@ -10,16 +10,15 @@ namespace Clud.Cli.Helpers
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
 
-            outputContext.WriteInfo();
-            outputContext.WriteInfo(command);
+            outputContext.Info(command);
 
             Console.ForegroundColor = ConsoleColor.DarkGray;
 
             var exitCode = await Process.ExecuteAsync(
                 command: "cmd.exe",
                 args: $"/C {command}",
-                stdOut: outputContext.WriteVerbose,
-                stdErr: outputContext.WriteError
+                stdOut: outputContext.Verbose,
+                stdErr: outputContext.Error
             );
 
             Console.ResetColor();

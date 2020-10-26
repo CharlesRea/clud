@@ -1,9 +1,10 @@
-name: weather
+name: multiple-services
+description: Example of a server talking to an API, both running in clud
 entryPoint: web
 services:
   - name: web
     dockerfile: ./Web/dockerfile
-    port: 80
+    httpPort: 80
   - name: api
     dockerfile: ./Api/dockerfile
-    port: 80
+    httpPort: 80

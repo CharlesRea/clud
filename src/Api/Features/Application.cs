@@ -13,6 +13,7 @@ namespace Clud.Api.Features
         public string Description { get; private set;  }
         public string Owner { get; private set;  }
         public string Repository { get; private set;  }
+        public string ConfigYaml { get; private set; } = ""; // TODO set this
         public DateTimeOffset UpdatedDateTime { get; private set; }
         public ICollection<Service> Services { get; private set; }
 
@@ -20,7 +21,7 @@ namespace Clud.Api.Features
 
         private Application() { }
 
-        public Application(CreateDeploymentRequest deployment)
+        public Application(DeployCommand deployment)
         {
             Name = deployment.Name;
             Description = deployment.Description;
@@ -31,7 +32,7 @@ namespace Clud.Api.Features
             Services = deployment.Services.Select(s => new Service(s)).ToList();
         }
 
-        public (IReadOnlyCollection<Service> newServices, IReadOnlyCollection<Service> deletedServices) Update(CreateDeploymentRequest deployment)
+        public (IReadOnlyCollection<Service> newServices, IReadOnlyCollection<Service> deletedServices) Update(DeployCommand deployment)
         {
             Name = deployment.Name;
             Description = deployment.Description;
@@ -54,7 +55,7 @@ namespace Clud.Api.Features
 
                 foreach (var service in deployment.Services)
                 {
-                    var existingService = existingServices.GetValueOrDefault(service.ServiceName);
+                    var existingService = existingServices.GetValueOrDefault(service.Name);
                     if (existingService != null)
                     {
                         existingService.Update(service);
@@ -67,7 +68,7 @@ namespace Clud.Api.Features
                     }
                 }
 
-                var deletedServices = Services.Where(service => deployment.Services.All(s => service.Name != s.ServiceName)).ToList();
+                var deletedServices = Services.Where(service => deployment.Services.All(s => service.Name != s.Name)).ToList();
                 foreach (var service in deletedServices)
                 {
                     Services.Remove(service);

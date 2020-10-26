@@ -49,15 +49,26 @@ namespace Clud.Cli
         private static void HandleException(Exception exception, InvocationContext context)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            context.Console.Error.WriteLine("Uh oh, something has gone badly wrong :(");
-            context.Console.Error.WriteLine(exception.Message);
+
+            if (exception is ValidationException validationException)
+            {
+                context.Console.Error.WriteLine(exception.Message);
+            }
+            else
+            {
+                context.Console.Error.WriteLine("Uh oh, something has gone badly wrong :(");
+                context.Console.Error.WriteLine();
+                context.Console.Error.WriteLine($"{exception.GetType()}: {exception.Message}");
+            }
 
 #if DEBUG
+            context.Console.Error.WriteLine();
             context.Console.Error.WriteLine(exception.ToString());
 
             while (exception.InnerException != null)
             {
                 exception = exception.InnerException;
+                context.Console.Error.WriteLine();
                 context.Console.Error.WriteLine("Inner exception:");
                 context.Console.Error.WriteLine(exception.ToString());
             }
