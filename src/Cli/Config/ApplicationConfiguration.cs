@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Clud.Cli.Helpers;
+using Clud.Cli.Templates;
 using FluentValidation;
 using SharpYaml;
 using SharpYaml.Serialization;
@@ -43,7 +44,11 @@ namespace Clud.Cli.Config
 
         public static ParseResult<ApplicationConfiguration> Parse(TextReader yamlStream)
         {
-            var yamlSerializer = new Serializer(new SerializerSettings { NamingConvention = new CamelCaseNamingConvention() });
+            var yamlSerializer = new Serializer(new SerializerSettings
+            {
+                NamingConvention = new CamelCaseNamingConvention(),
+                EmitTags = false
+            });
 
             try
             {
@@ -51,8 +56,14 @@ namespace Clud.Cli.Config
 
                 var validator = new Validator();
                 var validationResult = validator.Validate(configuration);
+                var parseResult = new ParseResult<ApplicationConfiguration>(configuration, validationResult);
 
-                return new ParseResult<ApplicationConfiguration>(configuration, validationResult);
+                foreach (var service in configuration.Services)
+                {
+                    parseResult.AddWarningsAndErrors(service.ParseTemplateOptions(yamlSerializer));
+                }
+
+                return parseResult;
             }
             catch (YamlException e)
             {
@@ -72,8 +83,13 @@ namespace Clud.Cli.Config
         public string DockerBuildPath { get; set; } // Defaults to the directory containing the Dockerfile
         public bool SpecifiesDockerfile => !string.IsNullOrEmpty(Dockerfile);
 
-        public string Project { get; set; }
-        public bool SpecifiesProject => !string.IsNullOrEmpty(Project);
+        [YamlMember("template")]
+        public string TemplateName { get; set; }
+        public bool SpecifiesTemplate => !string.IsNullOrEmpty(TemplateName);
+        [YamlMember("templateOptions")]
+        public Dictionary<string, object> RawTemplateOptions { get; set; }
+        [YamlIgnore]
+        public TemplateOptions TemplateOptions { get; private set; }
 
         public int? HttpPort { get; set; }
         public IList<int> TcpPorts { get; set; } = new List<int>();
@@ -89,13 +105,6 @@ namespace Clud.Cli.Config
 
         public IList<string> Secrets { get; set; } = new List<string>();
 
-        /*
-         * Environment variables - map of NAME: value
-         * Secrets - array of names to be injected as env variable
-         *     - When running clud deploy, if secret not set, prompted to set it.
-         *     - CAn also update via UI
-         */
-
         public class Validator : AbstractValidator<ServiceConfiguration>
         {
             public Validator()
@@ -105,8 +114,8 @@ namespace Clud.Cli.Config
                     .ValidResourceName();
 
                 RuleFor(c => c)
-                    .Must(c => new[] { c.DockerImage, c.Dockerfile, c.Project }.Count(value => !string.IsNullOrEmpty(value)) == 1)
-                    .WithMessage(c => $"Service {c.Name}: You must specify either a dockerImage, a dockerfile, or a project");
+                    .Must(c => new[] { c.DockerImage, c.Dockerfile, c.TemplateName }.Count(value => !string.IsNullOrEmpty(value)) == 1)
+                    .WithMessage(c => $"Service {c.Name}: You must specify either a dockerImage, a dockerfile, or a template");
 
                 RuleFor(c => c.DockerBuildPath)
                     .Empty()
@@ -127,6 +136,33 @@ namespace Clud.Cli.Config
                     .When(c => !string.IsNullOrWhiteSpace(c.PersistentStoragePath))
                     .WithMessage(c => $"Service {c.Name}: cannot specify both replicas and a persistentStoragePath");
             }
+        }
+
+        public ParseResult<TemplateOptions> ParseTemplateOptions(Serializer serializer)
+        {
+            if (TemplateName == null)
+            {
+                return ParseResult<TemplateOptions>.Success(null);
+            }
+
+            if (!Template.IsValidTemplateName(TemplateName))
+            {
+                return ParseResult<TemplateOptions>.Failed($"Service {Name}: Unrecognised template {TemplateName}. Valid options are {string.Join(", ", Template.TemplateNames)}");
+            }
+
+            if (RawTemplateOptions == null)
+            {
+                return ParseResult<TemplateOptions>.Failed($"Service {Name}: No template options provided");
+            }
+
+            var template = Template.GetTemplate(TemplateName);
+
+            var serialisedOptions = serializer.Serialize(RawTemplateOptions);
+            TemplateOptions = (TemplateOptions) serializer.Deserialize(serialisedOptions, template.OptionsType);
+
+            var validationResult = template.Validate(TemplateOptions);
+
+            return new ParseResult<TemplateOptions>(TemplateOptions, validationResult);
         }
     }
 }

@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Cli.Tests
 {
-    public class DeserialisationTests
+    public class ConfigurationTests
     {
         [Fact]
         public void DeserialisesAppConfig()
@@ -64,6 +64,33 @@ services:
             Assert.Equal(1, redis.Replicas);
             Assert.Empty(redis.EnvironmentVariables);
             Assert.Equal(new[] { "username", "password" }, redis.Secrets);
+        }
+
+        [Fact]
+        public void AspnetTemplate()
+        {
+            var configYaml = @"
+name: weather
+entryPoint: web
+services:
+  - name: web
+    template: aspnetcore
+    templateOptions:
+      projectDirectory: ./web
+    httpPort: 80
+";
+
+            var result = ApplicationConfiguration.Parse(new StringReader(configYaml));
+
+            Assert.Empty(result.Errors);
+            Assert.Empty(result.Warnings);
+
+            var config = result.Result;
+            Assert.Equal("weather", config.Name);
+
+            var web = config.Services[0];
+            Assert.Equal("web", web.Name);
+            Assert.Equal("aspnetcore", web.TemplateName);
         }
 
         [Fact]

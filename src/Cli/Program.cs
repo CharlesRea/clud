@@ -57,6 +57,7 @@ namespace Clud.Cli
             else
             {
                 context.Console.Error.WriteLine("Uh oh, something has gone badly wrong :(");
+                context.Console.Error.WriteLine("You can try re-running with the --verbose argument to get more detailed information");
                 context.Console.Error.WriteLine();
                 context.Console.Error.WriteLine($"{exception.GetType()}: {exception.Message}");
             }

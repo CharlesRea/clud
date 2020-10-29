@@ -7,14 +7,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Clud.Cli.Config;
 using Clud.Cli.Helpers;
+using Clud.Cli.Templates;
 using Clud.Grpc;
 using Google.Protobuf.Collections;
 using Grpc.Net.Client;
 
 namespace Clud.Cli.Commands
 {
-    // TODO
-    // Set up a full sample with secrets, postgres, env variables
     public static class Deploy
     {
         public static Command Command()
@@ -138,7 +137,7 @@ namespace Clud.Cli.Commands
                 var services = new List<DeployCommand.Types.Service>();
                 foreach (var serviceConfig in configuration.Services)
                 {
-                    services.Add(await ProcessService(serviceConfig, configFileDirectory, existingAppSecrets));
+                    services.Add(await ProcessService(serviceConfig, configuration.Name, configFileDirectory, existingAppSecrets));
                 }
 
                 return services;
@@ -146,6 +145,7 @@ namespace Clud.Cli.Commands
 
             private async Task<DeployCommand.Types.Service> ProcessService(
                 ServiceConfiguration service,
+                string applicationName,
                 string configFileDirectory,
                 SecretsResponse existingAppSecrets
             )
@@ -155,13 +155,13 @@ namespace Clud.Cli.Commands
                 string dockerImage = null;
                 var isPublicDockerImage = false;
 
-                if (service.SpecifiesProject)
+                if (service.SpecifiesTemplate)
                 {
-                    throw new NotImplementedException("Producing a suitable Docker image from a project file is not supported yet");
+                    dockerImage = await BuildDockerImageFromTemplate(service, applicationName, configFileDirectory);
                 }
                 else if (service.SpecifiesDockerfile)
                 {
-                    dockerImage = await BuildDockerImageFromDockerfile(service, configFileDirectory);
+                    dockerImage = await BuildDockerImageFromDockerfile(service, applicationName, configFileDirectory);
                 }
                 else if (service.SpecifiesDockerImage)
                 {
@@ -246,7 +246,29 @@ namespace Clud.Cli.Commands
                 return secrets;
             }
 
-            private async Task<string> BuildDockerImageFromDockerfile(ServiceConfiguration service, string configFileDirectory)
+            public async Task<string> BuildDockerImageFromTemplate(
+                ServiceConfiguration service,
+                string applicationName,
+                string configFileDirectory
+            )
+            {
+                output.Info($"Processing service '{service.Name}' ...");
+
+                var template = Template.GetTemplate(service.TemplateName);
+                var dockerfile = template.GenerateDockerfile(service, configFileDirectory);
+
+                var dockerFilePath = Path.Join(configFileDirectory, ".clud", "temp", service.Name);
+                Directory.CreateDirectory(Path.GetDirectoryName(dockerFilePath));
+                await File.WriteAllTextAsync(dockerFilePath, dockerfile);
+
+                return await ProcessDockerImage(service, applicationName, configFileDirectory, dockerFilePath);
+            }
+
+            private async Task<string> BuildDockerImageFromDockerfile(
+                ServiceConfiguration service,
+                string applicationName,
+                string configFileDirectory
+            )
             {
                 output.Info($"Processing service '{service.Name}' ...");
 
@@ -257,16 +279,25 @@ namespace Clud.Cli.Commands
                     throw new Exception($"Could not locate Dockerfile at '{dockerfilePath}' for service {service.Name}");
                 }
 
+                return await ProcessDockerImage(service, applicationName, configFileDirectory, dockerfilePath);
+            }
+
+            private async Task<string> ProcessDockerImage(
+                ServiceConfiguration service,
+                string applicationName,
+                string configFileDirectory,
+                string dockerFilePath
+            )
+            {
                 output.Info("Building the Docker image ...");
 
-                var dockerBuildPath = string.IsNullOrEmpty(service.DockerBuildPath)
-                    ? Directory.GetParent(dockerfilePath).FullName
-                    : Path.GetFullPath(service.DockerBuildPath, configFileDirectory);
+                var dockerBuildPath = Path.GetFullPath(service.TemplateOptions.DockerBuildPath, configFileDirectory);
 
-                var imageName = service.Name.ToLowerInvariant();
+                var imageName = $"{applicationName.ToLowerInvariant()}-{service.Name.ToLowerInvariant()}";
                 var tagVersion = Guid.NewGuid().ToString().Substring(0, 8);
                 var imageTag = $"{imageName}:{tagVersion}";
-                await CommandLineHelpers.ExecuteCommand($"docker build -t {imageName} -f {dockerfilePath} {dockerBuildPath}", output);
+                await CommandLineHelpers.ExecuteCommand($"docker build -t {imageName} -f {dockerFilePath} {dockerBuildPath}",
+                    output);
 
                 output.Success("Successfully built the Docker image.");
 

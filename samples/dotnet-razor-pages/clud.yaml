@@ -5,5 +5,7 @@ repository: github.com/CharlesRea/clud
 entryPoint: web
 services:
   - name: web
-    dockerfile: ./dockerfile
+    template: aspnetcore
+    templateOptions:
+      projectDirectory: .
     httpPort: 80
