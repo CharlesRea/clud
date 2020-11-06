@@ -1,5 +1,6 @@
-@using global::Shared
-@inject UrlGenerator urlGenerator
+@using Clud.Grpc
+@using Microsoft.Extensions.Options
+@inject IOptions<CludOptions> CludOptions
 
 <div class="flex flex-wrap justify-between items-center text-2xl py-4">
     <a href="/" class="flex-1 flex items-center text-gray-600 hover:text-teal-600">
@@ -7,9 +8,9 @@
         <pre class="tracking-tight">clud</pre>
     </a>
 
-    <a href="@urlGenerator.GetApplicationUrl(ApplicationName)" class="group flex justify-center truncate">
-        <span class="font-semibold group-hover:text-teal-600">@ApplicationName</span>
-        <span class="text-gray-600 group-hover:text-teal-600 truncate">@urlGenerator.GetApplicationUrlSuffix(ApplicationName)</span>
+    <a href="@Application.IngressUrl" class="group flex justify-center truncate">
+        <span class="font-semibold group-hover:text-teal-600">@Application.Name</span>
+        <span class="text-gray-600 group-hover:text-teal-600 truncate">.@CludOptions.Value.BaseHostname</span>
     </a>
 
     <div class="flex-1"></div>
@@ -17,5 +18,5 @@
 
 @code {
     [Parameter]
-    public string ApplicationName { get; set; }
+    public ApplicationResponse Application { get; set; }
 }

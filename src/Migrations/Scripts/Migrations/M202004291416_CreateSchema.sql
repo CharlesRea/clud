@@ -4,19 +4,15 @@ CREATE TABLE applications (
    description text NOT NULL,
    owner text NOT NULL,
    repository text NOT NULL,
-   config_yaml text NOT NULL,
+   has_entry_point boolean NOT NULL,
    updated_date_time timestamptz NOT NULL
 );
 
-CREATE TABLE application_histories (
-  application_history_id serial PRIMARY KEY,
+CREATE TABLE deployments (
+  deployment_id serial PRIMARY KEY,
   application_id INTEGER NOT NULL REFERENCES applications(application_id),
-  message text NOT NULL,
-  updated_date_time timestamptz NOT NULL
-);
-
-CREATE TABLE services (
-  service_id serial PRIMARY KEY,
-  application_id INTEGER NOT NULL REFERENCES applications(application_id),
-  name text NOT NULL
+  version INTEGER NOT NULL,
+  commit_hash TEXT NULL,
+  application_config TEXT NOT NULL,
+  deployment_date_time timestamptz NOT NULL
 );

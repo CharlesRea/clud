@@ -5,13 +5,13 @@
     <div class="flex max-w-full justify-between flex-wrap">
         <div class="text-xl flex-1 font-semibold mb-2 @(IsUnhealthy ? "text-red-600" : "")">@Service.Name</div>
         <div>
-            @(Service.DesiredPods != Service.ReadyPods ? $"{Service.ReadyPods} / {Service.DesiredPods}" : Service.ReadyPods.ToString()) pods ready
+            @(PodMetrics.DesiredPods != PodMetrics.ReadyPods ? $"{PodMetrics.ReadyPods} / {PodMetrics.DesiredPods}" : PodMetrics.ReadyPods.ToString()) pods ready
         </div>
     </div>
     <div class="text-gray-700 mb-2">
-        @if (Service.ExternallyAccessible)
+        @if (Service.IngressUrl != null)
         {
-            <div>Publicy accessible at <a href="http://@Service.ExternalHostname" target="_blank">@Service.ExternalHostname</a></div>
+            <div>Publicly accessible at <a href="http://@Service.IngressUrl" target="_blank">@Service.IngressUrl</a></div>
         }
         <div>
             Accessible to other Clud services at @Service.InternalHostname
@@ -44,7 +44,9 @@
 
 @code {
     [Parameter]
-    public ApplicationResponse.Types.ServiceResponse Service { get; set; }
+    public ApplicationResponse.Types.Service Service { get; set; }
 
-    public bool IsUnhealthy => Service.DesiredPods != Service.ReadyPods;
+    public ApplicationResponse.Types.PodMetrics PodMetrics => Service.PodMetrics;
+
+    public bool IsUnhealthy => PodMetrics.DesiredPods != PodMetrics.ReadyPods;
 }

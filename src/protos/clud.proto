@@ -16,7 +16,9 @@ message DeployCommand {
   string repository = 4;
   string entryPoint = 5;
   string configurationYaml = 6;
-  repeated Service services = 7;
+  int32 version = 7;
+  google.protobuf.StringValue commitHash = 8;
+  repeated Service services = 9;
 
   message Service {
     string name = 1;
@@ -70,6 +72,7 @@ message DeploymentResponse {
 service Applications {
   rpc ListApplications (ListApplicationsQuery) returns (ListApplicationsResponse);
   rpc GetApplication (ApplicationQuery) returns (ApplicationResponse);
+  rpc GetVersion (ApplicationVersionQuery) returns (ApplicationVersionResponse);
   rpc GetSecrets (SecretsQuery) returns (SecretsResponse);
 }
 
@@ -81,7 +84,8 @@ message ListApplicationsResponse {
     string name = 1;
     string description = 2;
     string owner = 3;
-    google.protobuf.Timestamp lastUpdatedTime = 4;
+    bool hasEntryPoint = 4;
+    google.protobuf.Timestamp lastUpdatedTime = 5;
   }
 
   repeated Application applications = 1;
@@ -93,39 +97,60 @@ message ApplicationQuery {
 
 message ApplicationResponse {
   string name = 1;
-  string url = 2;
+  google.protobuf.StringValue ingressUrl = 2;
   string description = 3;
   string owner = 4;
   string repository = 5;
   google.protobuf.Timestamp lastUpdatedTime = 6;
-  repeated ServiceResponse services = 7;
-  repeated ApplicationHistoryResponse history = 8;
+  repeated Service services = 7;
+  repeated Deployment deployments = 8;
 
-  message ServiceResponse {
+  message Service {
     string name = 1;
-    bool externallyAccessible = 2;
-    string externalHostname = 3;
-    string internalHostname = 4;
+    string internalHostname = 2;
+    google.protobuf.StringValue ingressUrl = 3;
+    repeated Port ports = 4;
+    string imageName = 5;
+    PodMetrics podMetrics = 6;
+    repeated Pod pods = 7;
+  }
+
+  message PodMetrics {
     int32 totalPods = 5;
     int32 readyPods = 6;
     int32 upToDatePods = 7;
     int32 desiredPods = 8;
-    string imageName = 9;
-    repeated PodResponse pods = 10;
   }
 
-  message PodResponse {
+  message Pod {
     string name = 1;
     string status = 2;
     string statusMessage = 3;
     google.protobuf.Timestamp creationDate = 4;
     string image = 5;
+    repeated Port ports = 6;
   }
 
-  message ApplicationHistoryResponse {
-    string message = 1;
-    google.protobuf.Timestamp updateDate = 2;
+  message Port {
+    google.protobuf.Int32Value exposedPort = 1;
+    int32 targetPort = 2;
+    string hostName = 3;
+    string type = 4;
   }
+
+  message Deployment {
+    int32 version = 1;
+    google.protobuf.StringValue commitHash = 2;
+    google.protobuf.Timestamp deploymentDate = 3;
+  }
+}
+
+message ApplicationVersionQuery {
+  string applicationName = 1;
+}
+
+message ApplicationVersionResponse {
+  google.protobuf.Int32Value version = 1;
 }
 
 message SecretsQuery {

@@ -9,7 +9,7 @@ using Grpc.Core;
 using KubeClient;
 using KubeClient.Models;
 using Microsoft.EntityFrameworkCore;
-using Shared;
+using Microsoft.Extensions.Options;
 
 namespace Clud.Api.Features
 {
@@ -17,115 +17,166 @@ namespace Clud.Api.Features
     {
         private readonly DataContext dataContext;
         private readonly KubeApiClient kubeApiClient;
-        private readonly UrlGenerator urlGenerator;
+        private readonly CludOptions cludOptions;
 
-        public ApplicationService(DataContext dataContext, KubeApiClient kubeApiClient, UrlGenerator urlGenerator)
+        public ApplicationService(
+            DataContext dataContext,
+            KubeApiClient kubeApiClient,
+            IOptions<CludOptions> cludOptions
+        )
         {
             this.dataContext = dataContext;
             this.kubeApiClient = kubeApiClient;
-            this.urlGenerator = urlGenerator;
+            this.cludOptions = cludOptions.Value;
         }
 
         public override async Task<ListApplicationsResponse> ListApplications(ListApplicationsQuery request, ServerCallContext context)
         {
-            var response = new ListApplicationsResponse();
-
-            var applications = await dataContext.Applications.Select(a => new ListApplicationsResponse.Types.Application
+            return new ListApplicationsResponse
             {
-                Name = a.Name,
-                Description = a.Description,
-                Owner = a.Owner,
-                LastUpdatedTime =  Timestamp.FromDateTimeOffset(a.UpdatedDateTime),
-            }).ToListAsync();
-
-            response.Applications.AddRange(applications);
-
-            return response;
+                Applications =
+                {
+                    await dataContext.Applications.Select(a => new ListApplicationsResponse.Types.Application
+                    {
+                        Name = a.Name,
+                        Description = a.Description,
+                        Owner = a.Owner,
+                        HasEntryPoint = a.HasEntryPoint,
+                        LastUpdatedTime = Timestamp.FromDateTimeOffset(a.UpdatedDateTime),
+                    }).ToListAsync()
+                }
+            };
         }
 
         public override async Task<ApplicationResponse> GetApplication(ApplicationQuery request, ServerCallContext context)
         {
-            var application = await dataContext.Applications
-                .Include(a => a.Services)
-                .SingleOrThrowNotFound(a => a.Name == request.Name);
+            var application = await dataContext.Applications.SingleOrThrowNotFound(a => a.Name == request.Name);
 
-            var historyEntries = await dataContext.ApplicationHistories
+            var appDeployments = await dataContext.Deployments
                 .Where(a => a.ApplicationId == application.ApplicationId)
+                .OrderByDescending(d => d.DeploymentDateTime)
                 .ToListAsync();
 
             var pods = (await kubeApiClient.PodsV1().List(kubeNamespace: application.Namespace))
-                .Where(pod => pod.Metadata.Labels.ContainsKey(KubeNaming.AppLabelKey))
                 .ToLookup(pod => pod.Metadata.Labels[KubeNaming.AppLabelKey]);
-            var kubeServices = (await kubeApiClient.ServicesV1().List(kubeNamespace: application.Namespace))
+            var services = (await kubeApiClient.ServicesV1().List(kubeNamespace: application.Namespace))
                 .ToDictionary(s => s.Metadata.Name);
-            var kubeDeployments = (await kubeApiClient.DeploymentsV1().List(kubeNamespace: application.Namespace))
+            var deployments = (await kubeApiClient.DeploymentsV1().List(kubeNamespace: application.Namespace))
                 .ToDictionary(d => d.Metadata.Name);
-            var kubeStatefulSets = (await kubeApiClient.StatefulSetV1().List(kubeNamespace: application.Namespace))
+            var statefulSets = (await kubeApiClient.StatefulSetV1().List(kubeNamespace: application.Namespace))
+                .ToDictionary(d => d.Metadata.Name);
+            var ingresses = (await kubeApiClient.IngressesV1Beta1().List(kubeNamespace: application.Namespace))
                 .ToDictionary(d => d.Metadata.Name);
 
-            var response = new ApplicationResponse
+            var entryPointIngress = ingresses.GetValueOrDefault(KubeNaming.EntryPointIngressName);
+
+            return new ApplicationResponse
             {
                 Name = application.Name,
-                Url = urlGenerator.GetApplicationUrl(application.Name),
+                IngressUrl = entryPointIngress != null ? "https://" + entryPointIngress.Spec.Rules.Single().Host : null,
                 Description = application.Description,
                 Owner = application.Owner,
                 Repository = application.Repository,
                 LastUpdatedTime = Timestamp.FromDateTimeOffset(application.UpdatedDateTime),
+                Services = { services.Values.Select(ProjectToServiceResponse) },
+                Deployments = { appDeployments.Select(ProjectToDeployment) },
             };
 
-            response.Services.AddRange(application.Services.Select(ProjectToServiceResponse));
-            response.History.AddRange(historyEntries.Select(ProjectToHistoryResponse));
-
-            return response;
-
-            ApplicationResponse.Types.ServiceResponse ProjectToServiceResponse(Service service)
+            ApplicationResponse.Types.Service ProjectToServiceResponse(ServiceV1 service)
             {
-                var servicePods = pods[service.Name];
-                var kubeService = kubeServices.GetValueOrDefault(service.Name) ?? throw new InvalidOperationException($"Service {service.Name} does not exist in namespace {application.Namespace}");
-                var kubeDeployment = kubeDeployments.GetValueOrDefault(service.Name);
-                var kubeStatefulSet = kubeStatefulSets.GetValueOrDefault(service.Name);
-                var port = kubeService.Spec.Ports.SingleOrDefault(p => p.Name == KubeNaming.HttpPortName);
+                var serviceName = service.Metadata.Name;
+                var servicePods = pods[serviceName];
+                var deployment = deployments.GetValueOrDefault(serviceName);
+                var statefulSet = statefulSets.GetValueOrDefault(serviceName);
+                var ingress = ingresses.GetValueOrDefault(serviceName);
 
-                var serviceResponse = new ApplicationResponse.Types.ServiceResponse
+                var podSpec = deployment?.Spec.Template.Spec
+                              ?? statefulSet?.Spec.Template.Spec
+                              ?? throw new InvalidOperationException($"No deployment or statefulSet for service {serviceName}");
+
+                var podMetrics = deployment != null
+                    ? new ApplicationResponse.Types.PodMetrics
+                    {
+                        TotalPods = deployment.Status.Replicas ?? 0,
+                        UpToDatePods = deployment.Status.UpdatedReplicas ?? 0,
+                        DesiredPods = deployment.Spec.Replicas ?? 1,
+                        ReadyPods = deployment.Status.ReadyReplicas ?? 0,
+                    }
+                    : new ApplicationResponse.Types.PodMetrics
+                    {
+                        TotalPods = statefulSet.Status.Replicas,
+                        UpToDatePods = statefulSet.Status.UpdatedReplicas ?? 0,
+                        DesiredPods = statefulSet.Spec.Replicas ?? 1,
+                        ReadyPods = statefulSet.Status.ReadyReplicas ?? 0,
+                    };
+
+
+                return new ApplicationResponse.Types.Service
                 {
-                    Name = service.Name,
-                    ExternallyAccessible = true, // TODO set this properly
-                    ExternalHostname = urlGenerator.GetExternalServiceHostname(application.Name, service.Name),
-                    InternalHostname = urlGenerator.GetInternalServiceHostname(application.Name, service.Name, port?.Port ?? 0),
-                    TotalPods = kubeDeployment?.Status.Replicas ?? 0,
-                    UpToDatePods = kubeDeployment?.Status.UpdatedReplicas ?? 0,
-                    DesiredPods = kubeDeployment?.Spec.Replicas ?? 1,
-                    ReadyPods = kubeDeployment?.Status.ReadyReplicas ?? 0,
-                    ImageName = kubeDeployment?.Spec.Template.Spec.Containers.FirstOrDefault()?.Image ?? string.Empty,
+                    Name = serviceName,
+                    InternalHostname = $"{serviceName}.{application.Name}",
+                    IngressUrl = ingress != null
+                        ? "https://" + ingress.Spec.Rules.Single().Host
+                        : null,
+                    Ports =
+                    {
+                        service.Spec.Ports
+                            .Where(port => port.Name != KubeNaming.HttpPortName)
+                            .Select(port => new ApplicationResponse.Types.Port
+                            {
+                                TargetPort = port.TargetPort.Int32Value,
+                                ExposedPort = port.NodePort,
+                                HostName = $"{serviceName}.{cludOptions.BaseHostname}",
+                                Type = port.Protocol,
+                            })
+                    },
+                    ImageName = podSpec.Containers.FirstOrDefault()?.Image ?? string.Empty,
+                    PodMetrics = podMetrics,
+                    Pods =
+                    {
+                        servicePods.Select(pod => new ApplicationResponse.Types.Pod
+                        {
+                            Name = pod.Metadata.Name,
+                            CreationDate = Timestamp.FromDateTime(pod.Metadata.CreationTimestamp ?? throw new InvalidOperationException("Pod does not have a creationTimestamp")),
+                            Status = pod.Status.Phase,
+                            StatusMessage = pod.Status.Message ?? string.Empty,
+                            Image = pod.Spec.Containers.FirstOrDefault()?.Image ?? string.Empty,
+                        })
+                    }
                 };
-
-                serviceResponse.Pods.AddRange(servicePods.Select(pod => new ApplicationResponse.Types.PodResponse
-                {
-                    Name = pod.Metadata.Name,
-                    CreationDate = Timestamp.FromDateTime(pod.Metadata.CreationTimestamp ?? throw new InvalidOperationException("Pod does not have a creationTimestamp")),
-                    Status = pod.Status.Phase,
-                    StatusMessage = pod.Status.Message ?? string.Empty,
-                    Image = pod.Spec.Containers.FirstOrDefault()?.Image ?? string.Empty,
-                }));
-
-                return serviceResponse;
             }
 
-            ApplicationResponse.Types.ApplicationHistoryResponse ProjectToHistoryResponse(ApplicationHistory history)
+            ApplicationResponse.Types.Deployment ProjectToDeployment(Deployment deployment)
             {
-                return new ApplicationResponse.Types.ApplicationHistoryResponse
+                return new ApplicationResponse.Types.Deployment
                 {
-                    Message = history.Message,
-                    UpdateDate = history.UpdatedDateTime.ToTimestamp(),
+                    Version = deployment.Version,
+                    CommitHash = deployment.CommitHash,
+                    DeploymentDate = deployment.DeploymentDateTime.ToTimestamp(),
                 };
             }
         }
 
+        public override async Task<ApplicationVersionResponse> GetVersion(ApplicationVersionQuery request, ServerCallContext context)
+        {
+            var application = await dataContext.Applications.SingleOrDefaultAsync(a => a.Name == request.ApplicationName);
+            if (application == null)
+            {
+                return new ApplicationVersionResponse();
+            }
+
+            var deploymentVersion = await dataContext.Deployments
+                .Where(d => d.ApplicationId == application.ApplicationId)
+                .OrderByDescending(d => d.Version)
+                .Select(d => d.Version)
+                .FirstAsync();
+
+            return new ApplicationVersionResponse { Version = deploymentVersion };
+        }
+
         public override async Task<SecretsResponse> GetSecrets(SecretsQuery request, ServerCallContext context)
         {
-            var application = await dataContext.Applications
-                .Include(a => a.Services)
-                .SingleOrDefaultAsync(a => a.Name == request.ApplicationName);
+            var application = await dataContext.Applications.SingleOrDefaultAsync(a => a.Name == request.ApplicationName);
 
             if (application == null)
             {

@@ -7,8 +7,8 @@ using Grpc.Net.Client.Web;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Shared;
 
 namespace Clud.Web
 {
@@ -21,20 +21,28 @@ namespace Clud.Web
 
             builder.Services.Configure<CludOptions>(options => builder.Configuration.Bind("Clud", options));
 
-            builder.Services.AddTransient(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-
             builder.Services.AddSingleton(services =>
             {
                 var httpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWeb, new HttpClientHandler()));
                 var baseUri = services.GetRequiredService<NavigationManager>().BaseUri;
                 var channel = GrpcChannel.ForAddress(baseUri, new GrpcChannelOptions { HttpClient = httpClient });
-
                 return new Applications.ApplicationsClient(channel);
             });
 
-            builder.Services.AddTransient<UrlGenerator>();
-
             await builder.Build().RunAsync();
+        }
+
+        private static async Task AddClientConfiguration(WebAssemblyHostBuilder builder)
+        {
+            var httpClient = new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) };
+            var configSettings = await httpClient.GetAsync("/api/config");
+            configSettings.EnsureSuccessStatusCode();
+            var configStream = await configSettings.Content.ReadAsStreamAsync();
+
+            // The following is taken from Blazor's own implementation - see the implementation of WebAssemblyHostBuilder.CreateDefault:
+            // Perf: Using this over AddJsonStream. This allows the linker to trim out the "File"-specific APIs and assemblies
+            // for Configuration, of where there are several.
+            builder.Configuration.Add<JsonStreamConfigurationSource>(s => s.Stream = configStream);
         }
     }
 }

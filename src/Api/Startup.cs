@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Shared;
 
 namespace Clud.Api
 {
@@ -21,11 +20,11 @@ namespace Clud.Api
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
-        // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
             services.Configure<CludOptions>(Configuration.GetSection("Clud"));
+
+            services.AddMvcCore();
 
             services.AddGrpc();
             services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
@@ -37,26 +36,18 @@ namespace Clud.Api
                 ).UseSnakeCaseNamingConvention()
             );
 
-            services.AddTransient<UrlGenerator>();
-
-            var kubeClientOptions = GetKubeClientOptions();
-            kubeClientOptions.KubeNamespace = "default";
-            services.AddKubeClient(kubeClientOptions);
+            services.AddKubeClient(GetKubeClientOptions());
         }
 
         private static KubeClientOptions GetKubeClientOptions()
         {
-            if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("KUBERNETES_SERVICE_HOST")))
-            {
-                return K8sConfig.Load().ToKubeClientOptions();
-            }
-            else
-            {
-                return KubeClientOptions.FromPodServiceAccount();
-            }
+            var options = string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("KUBERNETES_SERVICE_HOST"))
+                ? K8sConfig.Load().ToKubeClientOptions()
+                : KubeClientOptions.FromPodServiceAccount();
+            options.KubeNamespace = "default";
+            return options;
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
@@ -75,6 +66,7 @@ namespace Clud.Api
             {
                 endpoints.MapGrpcService<DeploymentsService>();
                 endpoints.MapGrpcService<ApplicationService>();
+                endpoints.MapControllers();
                 endpoints.MapFallbackToFile("index.html");
             });
         }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,7 +11,6 @@ using KubeClient.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Shared;
 
 namespace Clud.Api.Features
 {
@@ -24,7 +22,6 @@ namespace Clud.Api.Features
         private readonly ILogger<DeploymentsService> logger;
 
         private const string DockerRegistryLocation = "localhost:5000";
-        private const string EntryPointIngressName = "entry-point";
 
         public DeploymentsService(
             DataContext dataContext,
@@ -41,6 +38,7 @@ namespace Clud.Api.Features
 
         public override async Task<DeploymentResponse> DeployApplication(DeployCommand command, ServerCallContext context)
         {
+
             var kubeNamespace = command.Name;
 
             await CreateNamespace(kubeNamespace);
@@ -48,46 +46,31 @@ namespace Clud.Api.Features
             var entryPointIngress = await CreateEntryPointIngress(command, kubeNamespace);
             await CleanUpResources(serviceResources, kubeNamespace);
 
-            var application = await dataContext.Applications
-                .Include(a => a.Services)
-                .SingleOrDefaultAsync(a => a.Name == command.Name);
-            var applicationExists = application != null;
-
-            if (applicationExists)
+            var application = await dataContext.Applications.SingleOrDefaultAsync(a => a.Name == command.Name);
+            if (application != null)
             {
-                var (newServices, deletedServices) = application.Update(command);
-
-                var historyMessage =
-                    $"Update deployed"
-                      + (newServices.Any() ? $". New services added: {string.Join(", ", newServices.Select(s => s.Name))}" : "")
-                      + (deletedServices.Any() ? $". Services removed: {string.Join(", ", deletedServices.Select(s => s.Name))}" : "");
-
-                dataContext.ApplicationHistories.Add(new ApplicationHistory(application, historyMessage));
-                await dataContext.SaveChangesAsync();
+                application.Update(command);
             }
-
-            if (!applicationExists)
+            else
             {
                 application = new Application(command);
                 dataContext.Applications.Add(application);
                 await dataContext.SaveChangesAsync();
-                dataContext.ApplicationHistories.Add(new ApplicationHistory(
-                    application,
-                    $"{application.Name} created!"
-                ));
-                await dataContext.SaveChangesAsync();
             }
+
+            dataContext.Deployments.Add(new Deployment(application, command));
+            await dataContext.SaveChangesAsync();
 
             return new DeploymentResponse
             {
-                ManagementUrl = $"https://clud.{cludOptions.BaseHostname}/applications/{command.Name}",
+                ManagementUrl = $"https://{cludOptions.BaseHostname}/applications/{command.Name}",
                 IngressUrl = entryPointIngress != null ? "https://" + entryPointIngress.Spec.Rules.Single().Host : null,
                 Services =
                 {
                     serviceResources.Select(service => new DeploymentResponse.Types.Service
                     {
                         Name = service.Service.Metadata.Name,
-                        InternalHostname = $"{service.Service.Metadata.Name}.{service.Service.Metadata.Namespace}",
+                        InternalHostname = $"{service.Service.Metadata.Name}.{command.Name}",
                         IngressUrl = service.Ingress != null
                             ? "https://" + service.Ingress.Spec.Rules.Single().Host
                             : null,
@@ -175,14 +158,14 @@ namespace Clud.Api.Features
                     }
                 }
 
-                foreach (var secret in command.Secrets.Where(s => s.Value != null))
+                foreach (var secretCommand in command.Secrets.Where(s => s.Value != null))
                 {
-                    secretResource.Data[secret.Name] = Convert.ToBase64String(Encoding.UTF8.GetBytes(secret.Value));
+                    secretResource.Data[secretCommand.Name] = Convert.ToBase64String(Encoding.UTF8.GetBytes(secretCommand.Value));
                 }
 
                 foreach (var existingSecretNames in secretResource.Data.Keys)
                 {
-                    if (command.Secrets.All(secret => secret.Name != existingSecretNames))
+                    if (command.Secrets.All(secretCommand => secretCommand.Name != existingSecretNames))
                     {
                         secretResource.Data.Remove(existingSecretNames);
                     }
@@ -452,7 +435,7 @@ namespace Clud.Api.Features
 
             async Task DeleteExistingIngress()
             {
-                await kubeApiClient.IngressesV1Beta1().Delete(EntryPointIngressName, kubeNamespace);
+                await kubeApiClient.IngressesV1Beta1().Delete(KubeNaming.EntryPointIngressName, kubeNamespace);
             }
 
             async Task<IngressV1Beta1> CreateIngress()
@@ -461,7 +444,7 @@ namespace Clud.Api.Features
                 {
                     Metadata = new ObjectMetaV1
                     {
-                        Name = EntryPointIngressName,
+                        Name = KubeNaming.EntryPointIngressName,
                         Namespace = kubeNamespace,
                     },
                     Spec = new IngressSpecV1Beta1
@@ -527,7 +510,7 @@ namespace Clud.Api.Features
             {
                 var allIngresses = await kubeApiClient.IngressesV1Beta1().List(kubeNamespace: kubeNamespace);
                 foreach (var ingress in allIngresses.Items.Where(ingress =>
-                    expectedResources.All(r => r.Ingress?.Metadata.Name != ingress.Metadata.Name) && ingress.Metadata.Name != EntryPointIngressName))
+                    expectedResources.All(r => r.Ingress?.Metadata.Name != ingress.Metadata.Name) && ingress.Metadata.Name != KubeNaming.EntryPointIngressName))
                 {
                     await kubeApiClient.IngressesV1Beta1().Delete(ingress.Metadata.Name, kubeNamespace);
                 }

@@ -1,4 +1,4 @@
-name: razor-pages-sample
+name: razor-pages-sample5
 owner: Alex and Charles
 description: A minimal Razor Pages example, running in Clud
 repository: github.com/CharlesRea/clud
@@ -8,4 +8,5 @@ services:
     template: aspnetcore
     templateOptions:
       projectDirectory: .
+      requiresYarn: true
     httpPort: 80

@@ -99,7 +99,7 @@ namespace Clud.Build
         Target ConfigureHelm => _ => _
             .Executes(() =>
             {
-                HelmTasks.Helm("repo add stable https://kubernetes-charts.storage.googleapis.com/");
+                HelmTasks.Helm("repo add stable https://charts.helm.sh/stable");
                 HelmTasks.HelmRepoUpdate();
             });
 

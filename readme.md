@@ -39,6 +39,7 @@ Have a readthrough of the [Design Spec](./docs/01_DesignSpec.md) to understand t
   * Postgres DB, accessible on your local machine (once you've set up hosts entries as below) at
     `Host=clud.local;Port=30432;Database=clud;Username=clud;Password=supersecret`
   * A Docker registry
+* It may take a few minutes for the resources to be created while k8s downloads the docker images - run `kubectl get pod -n clud` to check when these resources have been created.
 * clud services are exposed at subdomains of `clud.local`. You'll need to add hosts file entries to point this at your kubenernetes cluster:
   * In an admin terminal, run `minikube ip` to get the Minikube cluster IP
   * Add a hosts file entry for `<minikube-ip> clud.local clud.clud.local traefik.clud.local registry.clud.local` (in Windows, the hosts file is at `C:\Windows\System32\drivers\etc\hosts`)

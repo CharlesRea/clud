@@ -1,4 +1,4 @@
-namespace Shared
+namespace Clud.Api
 {
     public class CludOptions
     {

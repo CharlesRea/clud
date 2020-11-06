@@ -1,13 +1,11 @@
-@page "/applications/{applicationName}"
+@page "/apps/{applicationName}"
 @using Clud.Grpc
-@using global::Shared
-@inject UrlGenerator urlGenerator
-@inject Applications.ApplicationsClient applicationsClient
+@inject Applications.ApplicationsClient ApplicationsClient
 
 <div class="container-md mx-auto p-4">
-    <ApplicationHeader ApplicationName="@ApplicationName"/>
     @if (application != null)
     {
+        <ApplicationHeader Application="@application"/>
         <div class="flex flex-col items-center">
             @if (!string.IsNullOrWhiteSpace(application.Description))
             {
@@ -35,7 +33,7 @@
             <div class="flex flex-wrap-reverse justify-between items-center mx-2">
                 <h2 class="text-2xl text-gray-600 my-4">Services</h2>
                 <div class="flex flex-wrap">
-                    <a href="@urlGenerator.GetApplicationUrl(ApplicationName)" target="_blank" class="text-gray-600 hover:text-teal-600">Link to app</a>
+                    <a href="@application.IngressUrl" target="_blank" class="text-gray-600 hover:text-teal-600">Link to app</a>
                     <button class="text-gray-600 hover:text-teal-600 ml-4">Restart</button> @* TODO make this do something *@
                     <button class="text-gray-600 hover:text-teal-600 ml-4">Delete</button> @* TODO make this do something *@
                 </div>
@@ -46,7 +44,7 @@
             }
         </div>
         <div class="mt-6 ml-2">
-            <ApplicationHistory application="@application" />
+            <DeploymentHistory application="@application" />
         </div>
     }
     else
@@ -63,7 +61,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        application = await applicationsClient.GetApplicationAsync(new ApplicationQuery { Name = ApplicationName });
+        application = await ApplicationsClient.GetApplicationAsync(new ApplicationQuery { Name = ApplicationName });
     }
 
 }
