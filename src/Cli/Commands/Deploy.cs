@@ -79,8 +79,15 @@ namespace Clud.Cli.Commands
             {
                 ConsoleHelpers.PrintLogo();
 
-                var configuration = GetConfiguration();
-                var services = await ProcessServices(configuration);
+                var (configuration, rawConfigContents) = GetConfiguration();
+
+                var currentAppVersion = await applicationsClient.GetVersionAsync(
+                    new ApplicationVersionQuery { ApplicationName = configuration.Name }
+                );
+
+                var deploymentVersion = (currentAppVersion.Version ?? 0) + 1;
+
+                var services = await ProcessServices(configuration, deploymentVersion);
 
                 output.Info("Contacting the clud server to kick off the deployment...");
 
@@ -91,6 +98,9 @@ namespace Clud.Cli.Commands
                     Description = configuration.Description,
                     Repository = configuration.Repository,
                     EntryPoint = configuration.EntryPoint,
+                    ConfigurationYaml = rawConfigContents,
+                    Version = deploymentVersion,
+                    CommitHash = await GitHelpers.CommitHash(Directory.GetParent(args.Config).FullName),
                     Services = { services },
                 });
 
@@ -98,7 +108,7 @@ namespace Clud.Cli.Commands
                 return 0;
             }
 
-            private ApplicationConfiguration GetConfiguration()
+            private (ApplicationConfiguration config, string rawContents) GetConfiguration()
             {
                 if (!File.Exists(args.Config))
                 {
@@ -124,10 +134,13 @@ namespace Clud.Cli.Commands
 
                 output.Verbose("Configuration file was read successfully." + Environment.NewLine);
 
-                return configuration.Result;
+                return (configuration.Result, File.ReadAllText(args.Config));
             }
 
-            private async Task<List<DeployCommand.Types.Service>> ProcessServices(ApplicationConfiguration configuration)
+            private async Task<List<DeployCommand.Types.Service>> ProcessServices(
+                ApplicationConfiguration configuration,
+                int deploymentVersion
+            )
             {
                 var configFileDirectory = Directory.GetParent(args.Config).FullName;
                 var existingAppSecrets = await applicationsClient.GetSecretsAsync(
@@ -137,7 +150,15 @@ namespace Clud.Cli.Commands
                 var services = new List<DeployCommand.Types.Service>();
                 foreach (var serviceConfig in configuration.Services)
                 {
-                    services.Add(await ProcessService(serviceConfig, configuration.Name, configFileDirectory, existingAppSecrets));
+                    services.Add(
+                        await ProcessService(
+                            serviceConfig,
+                            configuration.Name,
+                            configFileDirectory,
+                            existingAppSecrets,
+                            deploymentVersion
+                        )
+                    );
                 }
 
                 return services;
@@ -147,7 +168,8 @@ namespace Clud.Cli.Commands
                 ServiceConfiguration service,
                 string applicationName,
                 string configFileDirectory,
-                SecretsResponse existingAppSecrets
+                SecretsResponse existingAppSecrets,
+                int deploymentVersion
             )
             {
                 output.Verbose($"Processing service '{service.Name}' ...");
@@ -157,11 +179,21 @@ namespace Clud.Cli.Commands
 
                 if (service.SpecifiesTemplate)
                 {
-                    dockerImage = await BuildDockerImageFromTemplate(service, applicationName, configFileDirectory);
+                    dockerImage = await BuildDockerImageFromTemplate(
+                        service,
+                        applicationName,
+                        configFileDirectory,
+                        deploymentVersion
+                    );
                 }
                 else if (service.SpecifiesDockerfile)
                 {
-                    dockerImage = await BuildDockerImageFromDockerfile(service, applicationName, configFileDirectory);
+                    dockerImage = await BuildDockerImageFromDockerfile(
+                        service,
+                        applicationName,
+                        configFileDirectory,
+                        deploymentVersion
+                    );
                 }
                 else if (service.SpecifiesDockerImage)
                 {
@@ -246,10 +278,10 @@ namespace Clud.Cli.Commands
                 return secrets;
             }
 
-            public async Task<string> BuildDockerImageFromTemplate(
-                ServiceConfiguration service,
+            public async Task<string> BuildDockerImageFromTemplate(ServiceConfiguration service,
                 string applicationName,
-                string configFileDirectory
+                string configFileDirectory,
+                int deploymentVersion
             )
             {
                 output.Info($"Processing service '{service.Name}' ...");
@@ -261,13 +293,13 @@ namespace Clud.Cli.Commands
                 Directory.CreateDirectory(Path.GetDirectoryName(dockerFilePath));
                 await File.WriteAllTextAsync(dockerFilePath, dockerfile);
 
-                return await ProcessDockerImage(service, applicationName, configFileDirectory, dockerFilePath);
+                return await ProcessDockerImage(service, applicationName, configFileDirectory, dockerFilePath, deploymentVersion);
             }
 
-            private async Task<string> BuildDockerImageFromDockerfile(
-                ServiceConfiguration service,
+            private async Task<string> BuildDockerImageFromDockerfile(ServiceConfiguration service,
                 string applicationName,
-                string configFileDirectory
+                string configFileDirectory,
+                int deploymentVersion
             )
             {
                 output.Info($"Processing service '{service.Name}' ...");
@@ -279,14 +311,14 @@ namespace Clud.Cli.Commands
                     throw new Exception($"Could not locate Dockerfile at '{dockerfilePath}' for service {service.Name}");
                 }
 
-                return await ProcessDockerImage(service, applicationName, configFileDirectory, dockerfilePath);
+                return await ProcessDockerImage(service, applicationName, configFileDirectory, dockerfilePath, deploymentVersion);
             }
 
-            private async Task<string> ProcessDockerImage(
-                ServiceConfiguration service,
+            private async Task<string> ProcessDockerImage(ServiceConfiguration service,
                 string applicationName,
                 string configFileDirectory,
-                string dockerFilePath
+                string dockerFilePath,
+                int version
             )
             {
                 output.Info("Building the Docker image ...");
@@ -294,16 +326,15 @@ namespace Clud.Cli.Commands
                 var dockerBuildPath = Path.GetFullPath(service.TemplateOptions.DockerBuildPath, configFileDirectory);
 
                 var imageName = $"{applicationName.ToLowerInvariant()}-{service.Name.ToLowerInvariant()}";
-                var tagVersion = Guid.NewGuid().ToString().Substring(0, 8);
-                var imageTag = $"{imageName}:{tagVersion}";
-                await CommandLineHelpers.ExecuteCommand($"docker build -t {imageName} -f {dockerFilePath} {dockerBuildPath}",
+                var imageTag = $"{imageName}:{version}";
+                await CommandLineHelpers.ExecuteCommand($"docker", $"build -t {imageName} -f {dockerFilePath} {dockerBuildPath}",
                     output);
 
                 output.Success("Successfully built the Docker image.");
 
                 output.Info("Pushing the Docker image to the clud registry ...");
-                await CommandLineHelpers.ExecuteCommand($"docker tag {imageName} {CludOptions.Registry}/{imageTag}", output);
-                await CommandLineHelpers.ExecuteCommand($"docker push {CludOptions.Registry}/{imageTag}", output);
+                await CommandLineHelpers.ExecuteCommand($"docker", $"tag {imageName} {CludOptions.Registry}/{imageTag}", output);
+                await CommandLineHelpers.ExecuteCommand($"docker", $"push {CludOptions.Registry}/{imageTag}", output);
                 output.Success("Successfully pushed the Docker image.");
 
                 output.Success($"Successfully processed '{service.Name}'.");

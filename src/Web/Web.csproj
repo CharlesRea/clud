@@ -42,9 +42,6 @@
     <Content Update="Features\Application\ViewApplication.razor">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>
-    <Content Update="Features\Applications\ApplicationCard.razor">
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
     <Content Update="Features\Dashboard\Dashboard.razor">
       <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </Content>

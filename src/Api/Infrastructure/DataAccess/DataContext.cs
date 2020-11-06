@@ -7,8 +7,7 @@ namespace Clud.Api.Infrastructure.DataAccess
     public class DataContext : DbContext
     {
         public DbSet<Application> Applications { get; set; }
-        public DbSet<ApplicationHistory> ApplicationHistories { get; set; }
-        public DbSet<Service> Services { get; set; }
+        public DbSet<Deployment> Deployments { get; set; }
 
         public DataContext(DbContextOptions<DataContext> options) : base(options)
         {

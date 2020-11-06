@@ -4,13 +4,13 @@
 <div class="overflow-auto">
     <table class="table-auto">
     <tbody>
-    @foreach (var history in Application.History.OrderByDescending(h => h.UpdateDate))
-    {
-        <tr>
-            <td class="pr-4 py-1">@history.Message</td>
-            <td class="pl-4 py-1" title="@history.UpdateDate.ToDateTimeOffset().ToString("f")">@history.UpdateDate.ToDateTimeOffset().Humanize()</td>
-        </tr>
-    }
+@*     @foreach (var history in Application.History.OrderByDescending(h => h.UpdateDate)) *@
+@*     { *@
+@*         <tr> *@
+@*             <td class="pr-4 py-1">@history.Message</td> *@
+@*             <td class="pl-4 py-1" title="@history.UpdateDate.ToDateTimeOffset().ToString("f")">@history.UpdateDate.ToDateTimeOffset().Humanize()</td> *@
+@*         </tr> *@
+@*     } *@
     </tbody>
 </table>
 </div>

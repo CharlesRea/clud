@@ -1,50 +1,50 @@
-@using Clud.Grpc
-@using Humanizer;
-
-<div class="group w-full mb-8 border-b-4 @(IsUnhealthy ? "border-red-500" : "border-teal-500") bg-gray-100 py-4 px-6 shadow">
-    <div class="flex max-w-full justify-between flex-wrap">
-        <div class="text-xl flex-1 font-semibold mb-2 @(IsUnhealthy ? "text-red-600" : "")">@Service.Name</div>
-        <div>
-            @(Service.DesiredPods != Service.ReadyPods ? $"{Service.ReadyPods} / {Service.DesiredPods}" : Service.ReadyPods.ToString()) pods ready
-        </div>
-    </div>
-    <div class="text-gray-700 mb-2">
-        @if (Service.ExternallyAccessible)
-        {
-            <div>Publicy accessible at <a href="http://@Service.ExternalHostname" target="_blank">@Service.ExternalHostname</a></div>
-        }
-        <div>
-            Accessible to other Clud services at @Service.InternalHostname
-        </div>
-    </div>
-    <div class="overflow-auto">
-        <table class="table-auto w-full">
-            <thead>
-            <tr>
-                <th class="pr-4 py-1 text-left font-semibold text-gray-600">Pod</th>
-                <th class="px-4 py-1 text-left font-semibold text-gray-600">Status</th>
-                <th class="px-4 py-1 text-left font-semibold text-gray-600">Image</th>
-                <th class="pl-4 py-1 text-left font-semibold text-gray-600">Created</th>
-            </tr>
-            </thead>
-            <tbody>
-            @foreach (var pod in Service.Pods)
-            {
-                <tr>
-                    <td class="pr-4 py-1">@pod.Name</td>
-                    <td class="px-4 py-1">@(pod.Status + (!string.IsNullOrWhiteSpace(pod.StatusMessage) ? $" {pod.StatusMessage}" : ""))</td>
-                    <td class="px-4 py-1 @(pod.Image != Service.ImageName ? "text-red-600" : "")">@(pod.Image + (pod.Image != Service.ImageName ? " (outdated)" : ""))</td>
-                    <td class="pl-4 py-1" title="@pod.CreationDate.ToDateTimeOffset().ToString("f")">@pod.CreationDate.ToDateTimeOffset().Humanize()</td>
-                </tr>
-            }
-            </tbody>
-        </table>
-    </div>
-</div>
-
-@code {
-    [Parameter]
-    public ApplicationResponse.Types.ServiceResponse Service { get; set; }
-
-    public bool IsUnhealthy => Service.DesiredPods != Service.ReadyPods;
-}
+@* @using Clud.Grpc *@
+@* @using Humanizer; *@
+@* *@
+@* <div class="group w-full mb-8 border-b-4 @(IsUnhealthy ? "border-red-500" : "border-teal-500") bg-gray-100 py-4 px-6 shadow"> *@
+@*     <div class="flex max-w-full justify-between flex-wrap"> *@
+@*         <div class="text-xl flex-1 font-semibold mb-2 @(IsUnhealthy ? "text-red-600" : "")">@Service.Name</div> *@
+@*         <div> *@
+@*             @(Service.DesiredPods != Service.ReadyPods ? $"{Service.ReadyPods} / {Service.DesiredPods}" : Service.ReadyPods.ToString()) pods ready *@
+@*         </div> *@
+@*     </div> *@
+@*     <div class="text-gray-700 mb-2"> *@
+@*         @if (Service.ExternallyAccessible) *@
+@*         { *@
+@*             <div>Publicy accessible at <a href="http://@Service.ExternalHostname" target="_blank">@Service.ExternalHostname</a></div> *@
+@*         } *@
+@*         <div> *@
+@*             Accessible to other Clud services at @Service.InternalHostname *@
+@*         </div> *@
+@*     </div> *@
+@*     <div class="overflow-auto"> *@
+@*         <table class="table-auto w-full"> *@
+@*             <thead> *@
+@*             <tr> *@
+@*                 <th class="pr-4 py-1 text-left font-semibold text-gray-600">Pod</th> *@
+@*                 <th class="px-4 py-1 text-left font-semibold text-gray-600">Status</th> *@
+@*                 <th class="px-4 py-1 text-left font-semibold text-gray-600">Image</th> *@
+@*                 <th class="pl-4 py-1 text-left font-semibold text-gray-600">Created</th> *@
+@*             </tr> *@
+@*             </thead> *@
+@*             <tbody> *@
+@*             @foreach (var pod in Service.Pods) *@
+@*             { *@
+@*                 <tr> *@
+@*                     <td class="pr-4 py-1">@pod.Name</td> *@
+@*                     <td class="px-4 py-1">@(pod.Status + (!string.IsNullOrWhiteSpace(pod.StatusMessage) ? $" {pod.StatusMessage}" : ""))</td> *@
+@*                     <td class="px-4 py-1 @(pod.Image != Service.ImageName ? "text-red-600" : "")">@(pod.Image + (pod.Image != Service.ImageName ? " (outdated)" : ""))</td> *@
+@*                     <td class="pl-4 py-1" title="@pod.CreationDate.ToDateTimeOffset().ToString("f")">@pod.CreationDate.ToDateTimeOffset().Humanize()</td> *@
+@*                 </tr> *@
+@*             } *@
+@*             </tbody> *@
+@*         </table> *@
+@*     </div> *@
+@* </div> *@
+@* *@
+@* @code { *@
+@*     [Parameter] *@
+@*     public ApplicationResponse.Types.ServiceResponse Service { get; set; } *@
+@* *@
+@*     public bool IsUnhealthy => Service.DesiredPods != Service.ReadyPods; *@
+@* } *@

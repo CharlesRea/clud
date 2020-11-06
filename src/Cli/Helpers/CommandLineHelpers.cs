@@ -6,17 +6,17 @@ namespace Clud.Cli.Helpers
 {
     public static class CommandLineHelpers
     {
-        public static async Task ExecuteCommand(string command, OutputContext outputContext)
+        public static async Task ExecuteCommand(string command, string args, OutputContext outputContext)
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
 
-            outputContext.Info(command);
+            outputContext.Info($"{command} {args}");
 
             Console.ForegroundColor = ConsoleColor.DarkGray;
 
             var exitCode = await Process.ExecuteAsync(
-                command: "cmd.exe",
-                args: $"/C {command}",
+                command,
+                args,
                 stdOut: outputContext.Verbose,
                 stdErr: outputContext.Error
             );
