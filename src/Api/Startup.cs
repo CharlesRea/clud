@@ -27,7 +27,6 @@ namespace Clud.Api
             services.AddMvcCore();
 
             services.AddGrpc();
-            services.AddGrpcWeb(o => o.GrpcWebEnabled = true);
 
             services.AddDbContext<DataContext>(
                 options => options.UseNpgsql(
@@ -60,7 +59,7 @@ namespace Clud.Api
 
             app.UseRouting();
 
-            app.UseGrpcWeb();
+            app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
 
             app.UseEndpoints(endpoints =>
             {
