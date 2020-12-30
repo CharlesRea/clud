@@ -27,5 +27,10 @@ module.exports = {
         padding: ['focus'],
         textColor: ['responsive', 'hover', 'focus', 'group-hover'],
     },
+    purge: [
+        './Features/**/*.razor',
+        './Shared/**/*.razor',
+        './wwwroot/**/*.html',
+    ],
     plugins: [],
 }
