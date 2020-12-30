@@ -113,6 +113,7 @@ message ApplicationResponse {
     string imageName = 5;
     PodMetrics podMetrics = 6;
     repeated Pod pods = 7;
+    bool deploymentInProgress = 8;
   }
 
   message PodMetrics {

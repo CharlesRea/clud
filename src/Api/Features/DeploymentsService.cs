@@ -21,8 +21,6 @@ namespace Clud.Api.Features
         private readonly CludOptions cludOptions;
         private readonly ILogger<DeploymentsService> logger;
 
-        private const string DockerRegistryLocation = "localhost:5000";
-
         public DeploymentsService(
             DataContext dataContext,
             KubeApiClient kubeApiClient,
@@ -289,7 +287,7 @@ namespace Clud.Api.Features
             {
                 return command.IsPublicDockerImage
                     ? command.DockerImage
-                    : $"{DockerRegistryLocation}/{command.DockerImage}";
+                    : $"{KubeNaming.DockerRegistryLocation}/{command.DockerImage}";
             }
 
             void AddEnvironmentVariables(List<EnvVarV1> envVarV1s)

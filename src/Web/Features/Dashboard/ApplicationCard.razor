@@ -3,25 +3,25 @@
 @using Microsoft.Extensions.Options
 @inject IOptions<CludOptions> CludOptions
 
-<a href="/apps/@Application.Name" class="group w-full m-4 border-b-4 border-teal-500 bg-gray-100 py-4 px-6 shadow-md text-gray-800 hover:bg-teal-500 hover:text-teal-100 hover:border-teal-100 flex">
+<a href="/apps/@Application.Name" class="group w-full m-4 border-b-4 border-blue-500 bg-gray-100 py-4 px-6 shadow-md text-gray-800 hover:bg-blue-700 hover:text-gray-100 hover:border-blue-100 flex">
     <div class="flex-1 max-w-full">
         <div class="text-2xl flex">
             <span class="font-semibold">@Application.Name</span>
             @if (@Application.HasEntryPoint)
             {
-                <span class="text-gray-600 group-hover:text-teal-200 truncate">.@CludOptions.Value.BaseHostname</span>
+                <span class="text-gray-600 group-hover:text-blue-200 truncate">.@CludOptions.Value.BaseHostname</span>
             }
         </div>
         @if (!string.IsNullOrWhiteSpace(Application.Description))
         {
-            <div class="text-gray-800 group-hover:text-teal-200 pt-2">@Application.Description</div>
+            <div class="text-gray-800 group-hover:text-blue-200 pt-2">@Application.Description</div>
         }
     </div>
     <div class="flex-col items-end justify-around hidden md:flex">
-        <div class="text-gray-600 group-hover:text-teal-200" title="@Application.LastUpdatedTime.ToDateTimeOffset().ToString("f")">@Application.LastUpdatedTime.ToDateTimeOffset().Humanize()</div>
+        <div class="text-gray-600 group-hover:text-blue-200" title="@Application.LastUpdatedTime.ToDateTimeOffset().ToString("f")">Deployed @Application.LastUpdatedTime.ToDateTimeOffset().Humanize()</div>
         @if (!string.IsNullOrWhiteSpace(Application.Owner))
         {
-            <div class="text-gray-600 group-hover:text-teal-200">@Application.Owner</div>
+            <div class="text-gray-600 group-hover:text-blue-200">@Application.Owner</div>
         }
     </div>
 </a>

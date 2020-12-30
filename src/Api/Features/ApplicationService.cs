@@ -130,8 +130,12 @@ namespace Clud.Api.Features
                                 Type = port.Protocol,
                             })
                     },
-                    ImageName = podSpec.Containers.FirstOrDefault()?.Image ?? string.Empty,
+                    ImageName = KubeNaming.ImageNameWithoutCludRegistryUrl(podSpec.Containers.FirstOrDefault()?.Image ?? string.Empty),
                     PodMetrics = podMetrics,
+                    // TODO this does not return the correct reuslt - look at https://github.com/kubernetes/kubernetes/blob/74bcefc8b2bf88a2f5816336999b524cc48cf6c0/pkg/controller/deployment/util/deployment_util.go#L745
+                    DeploymentInProgress = deployment != null
+                        ? deployment.Status.Conditions.Any(c => c.Type == "Progressing" && c.Status == "True")
+                        : statefulSet.Status.Conditions.Any(c => c.Type == "Progressing" && c.Status == "True"),
                     Pods =
                     {
                         servicePods.Select(pod => new ApplicationResponse.Types.Pod
@@ -140,7 +144,7 @@ namespace Clud.Api.Features
                             CreationDate = Timestamp.FromDateTime(pod.Metadata.CreationTimestamp ?? throw new InvalidOperationException("Pod does not have a creationTimestamp")),
                             Status = pod.Status.Phase,
                             StatusMessage = pod.Status.Message ?? string.Empty,
-                            Image = pod.Spec.Containers.FirstOrDefault()?.Image ?? string.Empty,
+                            Image = KubeNaming.ImageNameWithoutCludRegistryUrl(pod.Spec.Containers.FirstOrDefault()?.Image ?? string.Empty),
                         })
                     }
                 };

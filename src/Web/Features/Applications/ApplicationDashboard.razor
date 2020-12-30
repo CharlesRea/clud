@@ -27,24 +27,21 @@
                     }
                 </div>
             }
-        </div>
 
-        <div>
-            <div class="flex flex-wrap-reverse justify-between items-center mx-2">
-                <h2 class="text-2xl text-gray-600 my-4">Services</h2>
+            <div class="flex flex-wrap-reverse justify-between items-center pt-8 mx-2">
                 <div class="flex flex-wrap">
-                    <a href="@application.IngressUrl" target="_blank" class="text-gray-600 hover:text-teal-600">Link to app</a>
-                    <button class="text-gray-600 hover:text-teal-600 ml-4">Restart</button> @* TODO make this do something *@
-                    <button class="text-gray-600 hover:text-teal-600 ml-4">Delete</button> @* TODO make this do something *@
+                    <a href="@application.IngressUrl" target="_blank" class="text-gray-200 hover:text-blue-500 font-semibold">Link to app</a>
+                    <button class="text-gray-200 hover:text-blue-500 font-semibold ml-6">Config file</button> @* TODO make this do something *@
+                    <button class="text-gray-200 hover:text-blue-500 font-semibold ml-6">Delete</button> @* TODO make this do something *@
                 </div>
             </div>
+        </div>
+
+        <div class="mt-12">
             @foreach (var service in application.Services)
             {
-                <ServiceCard service="@service"/>
+                <ServiceCard service="@service" />
             }
-        </div>
-        <div class="mt-6 ml-2">
-            <DeploymentHistory application="@application" />
         </div>
     }
     else

@@ -1,18 +1,32 @@
 @using Clud.Grpc
 @using Humanizer
-<h2 class="text-xl text-gray-600">Deployments</h2>
+<h2 class="text-xl mb-2">Deployments</h2>
 <div class="overflow-auto">
     <table class="table-auto">
-    <tbody>
-     @foreach (var deployment in Application.Deployments.OrderByDescending(h => h.DeploymentDate))
-     {
-         <tr>
-             <td class="pr-4 py-1">@deployment.Version</td>
-             <td class="pl-4 py-1" title="@deployment.DeploymentDate.ToDateTimeOffset().ToString("f")">@deployment.DeploymentDate.ToDateTimeOffset().Humanize()</td>
-         </tr>
-     }
-    </tbody>
-</table>
+        <thead>
+        <tr>
+            <th class="pr-6 py-1 text-left font-semibold">Version</th>
+            <th class="px-6 py-1 text-left font-semibold">Date</th>
+            <th class="px-6 py-1 text-left font-semibold">Commit Hash</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var deployment in Application.Deployments.OrderByDescending(h => h.DeploymentDate))
+        {
+            <tr>
+                <td class="py-1">
+                    @deployment.Version
+                </td>
+                <td class="px-6">
+                    @deployment.DeploymentDate.ToDateTimeOffset().Humanize()
+                </td>
+                <td class="px-6">
+                    @deployment.CommitHash?.Substring(0, Math.Min(deployment.CommitHash.Length, 8))
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
 </div>
 
 @code {

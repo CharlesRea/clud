@@ -13,10 +13,11 @@ module.exports = {
           yellow: colors.amber,
           green: colors.emerald,
           teal: colors.teal,
-          blue: colors.blue,
+          blue: colors.lightBlue,
           indigo: colors.indigo,
           purple: colors.violet,
-          pink: colors.pink
+          pink: colors.pink,
+          orange: colors.orange,
         }
     },
     variants: {

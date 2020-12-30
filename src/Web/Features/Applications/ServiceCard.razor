@@ -1,40 +1,73 @@
 @using Clud.Grpc
 @using Humanizer;
+@using System.Text
 
-<div class="group w-full mb-8 border-b-4 @(IsUnhealthy ? "border-red-500" : "border-teal-500") bg-gray-100 py-4 px-6 shadow">
+<div class="group w-full mb-12 border-b-8 @(IsUnhealthy ? "border-red-600" : "border-blue-600") bg-gray-200 py-4 px-6 shadow text-gray-800">
     <div class="flex max-w-full justify-between flex-wrap">
-        <div class="text-xl flex-1 font-semibold mb-2 @(IsUnhealthy ? "text-red-600" : "")">@Service.Name</div>
-        <div>
-            @(PodMetrics.DesiredPods != PodMetrics.ReadyPods ? $"{PodMetrics.ReadyPods} / {PodMetrics.DesiredPods}" : PodMetrics.ReadyPods.ToString()) pods ready
+        <div class="flex items-center">
+            <h3 class="text-2xl flex-1 font-semibold mr-2 mb-2 @(IsUnhealthy ? "text-red-600" : "text-blue-600")">
+                @Service.Name
+            </h3>
+            @if (!Service.DeploymentInProgress && IsUnhealthy)
+            {
+                <Badge Colour="@BadgeColour.Red">Unhealthy</Badge>
+            }
+            @if (Service.DeploymentInProgress)
+            {
+                <Badge Colour="@BadgeColour.Teal">Deploying</Badge>
+            }
+        </div>
+        <div class="flex">
+            <div class="mr-6">
+                @(PodMetrics.DesiredPods != UpToDateRunningPods ? $"{UpToDateRunningPods} / {PodMetrics.DesiredPods}" : UpToDateRunningPods.ToString())
+                pod@(UpToDateRunningPods == 1 ? "" : "s")
+                ready
+            </div>
+            <div>
+                Restart
+            </div>
         </div>
     </div>
-    <div class="text-gray-700 mb-2">
-        @if (Service.IngressUrl != null)
-        {
-            <div>Publicly accessible at <a href="http://@Service.IngressUrl" target="_blank">@Service.IngressUrl</a></div>
-        }
-        <div>
-            Accessible to other Clud services at @Service.InternalHostname
+    <div class="text-gray-700">
+        <div class="text-sm">
+            @if (Service.IngressUrl != null)
+            {
+                <div>Hosted at <a class="hover:text-blue-600" href="@Service.IngressUrl" target="_blank">@Service.IngressUrl</a>. </div>
+            }
+            <div>
+                Other Clud services can access at @Service.InternalHostname.
+            </div>
         </div>
     </div>
     <div class="overflow-auto">
         <table class="table-auto w-full">
-            <thead>
-            <tr>
-                <th class="pr-4 py-1 text-left font-semibold text-gray-600">Pod</th>
-                <th class="px-4 py-1 text-left font-semibold text-gray-600">Status</th>
-                <th class="px-4 py-1 text-left font-semibold text-gray-600">Image</th>
-                <th class="pl-4 py-1 text-left font-semibold text-gray-600">Created</th>
-            </tr>
-            </thead>
-            <tbody>
+            <tbody class="divide-y divide-gray-300">
             @foreach (var pod in Service.Pods)
             {
                 <tr>
-                    <td class="pr-4 py-1">@pod.Name</td>
-                    <td class="px-4 py-1">@(pod.Status + (!string.IsNullOrWhiteSpace(pod.StatusMessage) ? $" {pod.StatusMessage}" : ""))</td>
-                    <td class="px-4 py-1 @(pod.Image != Service.ImageName ? "text-red-600" : "")">@(pod.Image + (pod.Image != Service.ImageName ? " (outdated)" : ""))</td>
-                    <td class="pl-4 py-1" title="@pod.CreationDate.ToDateTimeOffset().ToString("f")">@pod.CreationDate.ToDateTimeOffset().Humanize()</td>
+                    <td class="pr-2 py-5">
+                        <span class="pr-2 font-semibold">
+                            @pod.Name
+                        </span>
+                        <Badge Colour="@PodStatusBadgeColour(pod)">@pod.Status</Badge>
+                    </td>
+                    <td>
+                        <div class="text-sm">
+                            Running image @pod.Image
+                            @if (pod.Image != Service.ImageName)
+                            {
+                                <span class="pl-2">
+                                    <Badge Colour="@BadgeColour.Red">Outdated</Badge>
+                                </span>
+                            }
+                        </div>
+                        <div class="text-sm">
+                            Created @pod.CreationDate.ToDateTimeOffset().Humanize()
+                        </div>
+                    </td>
+                    <td>
+                        Logs
+                    </td>
                 </tr>
             }
             </tbody>
@@ -48,5 +81,14 @@
 
     public ApplicationResponse.Types.PodMetrics PodMetrics => Service.PodMetrics;
 
-    public bool IsUnhealthy => PodMetrics.DesiredPods != PodMetrics.ReadyPods;
+    public int UpToDateRunningPods => Service.Pods.Count(pod => pod.Status == "Running" && pod.Image == Service.ImageName);
+    public bool IsUnhealthy => UpToDateRunningPods != PodMetrics.DesiredPods;
+
+    public BadgeColour PodStatusBadgeColour(ApplicationResponse.Types.Pod pod) =>
+        pod.Status switch {
+            "Running" => BadgeColour.Green,
+            "Pending" => BadgeColour.Teal,
+            _ => BadgeColour.Red,
+        };
+
 }
