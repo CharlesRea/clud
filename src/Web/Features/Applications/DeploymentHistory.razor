@@ -1,0 +1,21 @@
+@using Clud.Grpc
+@using Humanizer
+<h2 class="text-xl text-gray-600">Deployments</h2>
+<div class="overflow-auto">
+    <table class="table-auto">
+    <tbody>
+     @foreach (var deployment in Application.Deployments.OrderByDescending(h => h.DeploymentDate))
+     {
+         <tr>
+             <td class="pr-4 py-1">@deployment.Version</td>
+             <td class="pl-4 py-1" title="@deployment.DeploymentDate.ToDateTimeOffset().ToString("f")">@deployment.DeploymentDate.ToDateTimeOffset().Humanize()</td>
+         </tr>
+     }
+    </tbody>
+</table>
+</div>
+
+@code {
+    [Parameter]
+    public ApplicationResponse Application { get; set; }
+}

@@ -64,7 +64,7 @@ namespace Clud.Api.Features
 
             return new DeploymentResponse
             {
-                ManagementUrl = $"https://clud.{cludOptions.BaseHostname}/applications/{command.Name}",
+                ManagementUrl = $"https://{cludOptions.BaseHostname}/applications/{command.Name}",
                 IngressUrl = entryPointIngress != null ? "https://" + entryPointIngress.Spec.Rules.Single().Host : null,
                 Services =
                 {

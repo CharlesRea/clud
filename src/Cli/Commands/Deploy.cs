@@ -278,7 +278,8 @@ namespace Clud.Cli.Commands
                 return secrets;
             }
 
-            public async Task<string> BuildDockerImageFromTemplate(ServiceConfiguration service,
+            public async Task<string> BuildDockerImageFromTemplate(
+                ServiceConfiguration service,
                 string applicationName,
                 string configFileDirectory,
                 int deploymentVersion
@@ -290,10 +291,18 @@ namespace Clud.Cli.Commands
                 var dockerfile = template.GenerateDockerfile(service, configFileDirectory);
 
                 var dockerFilePath = Path.Join(configFileDirectory, ".clud", "temp", service.Name);
+                output.Verbose($"Writing docker file to {dockerFilePath}");
                 Directory.CreateDirectory(Path.GetDirectoryName(dockerFilePath));
                 await File.WriteAllTextAsync(dockerFilePath, dockerfile);
 
-                return await ProcessDockerImage(service, applicationName, configFileDirectory, dockerFilePath, deploymentVersion);
+                return await ProcessDockerImage(
+                    service,
+                    applicationName,
+                    configFileDirectory,
+                    dockerFilePath,
+                    service.TemplateOptions.DockerBuildPath,
+                    deploymentVersion
+                );
             }
 
             private async Task<string> BuildDockerImageFromDockerfile(ServiceConfiguration service,
@@ -311,19 +320,30 @@ namespace Clud.Cli.Commands
                     throw new Exception($"Could not locate Dockerfile at '{dockerfilePath}' for service {service.Name}");
                 }
 
-                return await ProcessDockerImage(service, applicationName, configFileDirectory, dockerfilePath, deploymentVersion);
+                return await ProcessDockerImage(
+                    service,
+                    applicationName,
+                    configFileDirectory,
+                    dockerfilePath,
+                    service.DockerBuildPath,
+                    deploymentVersion
+                );
             }
 
-            private async Task<string> ProcessDockerImage(ServiceConfiguration service,
+            private async Task<string> ProcessDockerImage(
+                ServiceConfiguration service,
                 string applicationName,
                 string configFileDirectory,
                 string dockerFilePath,
+                string dockerBuildPath,
                 int version
             )
             {
                 output.Info("Building the Docker image ...");
 
-                var dockerBuildPath = Path.GetFullPath(service.TemplateOptions.DockerBuildPath, configFileDirectory);
+                dockerBuildPath = string.IsNullOrEmpty(dockerBuildPath)
+                    ? Directory.GetParent(dockerFilePath).FullName
+                    : Path.GetFullPath(dockerBuildPath, configFileDirectory);
 
                 var imageName = $"{applicationName.ToLowerInvariant()}-{service.Name.ToLowerInvariant()}";
                 var imageTag = $"{imageName}:{version}";
