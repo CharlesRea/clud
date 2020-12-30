@@ -17,7 +17,7 @@ namespace Clud.Web
         public static async Task Main(string[] args)
         {
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
-            builder.RootComponents.Add<App>("app");
+            builder.RootComponents.Add<App>("#app");
 
             builder.Services.Configure<CludOptions>(options => builder.Configuration.Bind("Clud", options));
 

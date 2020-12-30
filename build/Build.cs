@@ -47,7 +47,7 @@ namespace Clud.Build
             RootInfrastructureDirectory / EnvironmentInfrastructureDirectoryName;
 
         AbsolutePath MigrationsDllFile =>
-            MigrationsDirectory / $"bin/{Configuration}/netcoreapp3.1/Migrations.dll";
+            MigrationsDirectory / $"bin/{Configuration}/net5.0/Migrations.dll";
 
         public string SqlConnectionStringOrDefault =>
             SqlConnectionString ?? (Environment == Environment.LocalDev

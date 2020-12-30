@@ -79,14 +79,14 @@ ENTRYPOINT [""dotnet"", ""{projectName}.dll""]";
 
         public class Options : TemplateOptions
         {
-            public string DotNetVersion { get; set; } = "3.1";
+            public string DotNetVersion { get; set; } = "5.0";
 
             public string ProjectDirectory { get; set; }
             public string ProjectName { get; set; }
             public string Configuration { get; set; } = "Release";
 
-            public string BuildImage => $"mcr.microsoft.com/dotnet/core/sdk:{DotNetVersion}";
-            public string RuntimeImage => $"mcr.microsoft.com/dotnet/core/aspnet:{DotNetVersion}";
+            public string BuildImage => $"mcr.microsoft.com/dotnet/sdk:{DotNetVersion}";
+            public string RuntimeImage => $"mcr.microsoft.com/dotnet/aspnet:{DotNetVersion}";
 
             public bool RequiresYarn { get; set; } = false;
 
