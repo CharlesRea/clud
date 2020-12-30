@@ -25,7 +25,9 @@ Have a readthrough of the [Design Spec](./docs/01_DesignSpec.md) to understand t
     and run `minikube start --driver=hyperv` in an admin terminal.
 * [Helm](https://helm.sh/docs/intro/install/)
   * (Helm is a package manage for Kubernetes, allowing deploying public application definitions from the Helm repository)
-* [.NET Core 3.1 SDK](https://dotnet.microsoft.com/download)
+* [.NET Core 5.0 SDK](https://dotnet.microsoft.com/download)
+* [Node 14+](https://nodejs.org/en/)
+* [Yarn v1](https://classic.yarnpkg.com/lang/en/)
 
 ### Infrastructure setup
 * Setup a self-signed certificate (used for HTTPS), and add it as a Kubernetes secret (On Windows, you might need to run the following commands in Git Bash or equivalent)
