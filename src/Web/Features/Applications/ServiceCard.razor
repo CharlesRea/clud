@@ -2,10 +2,10 @@
 @using Humanizer;
 @using System.Text
 
-<div class="group w-full mb-12 border-b-8 @(IsUnhealthy ? "border-red-600" : "border-blue-600") bg-gray-200 py-4 px-6 shadow text-gray-800">
+<div class="group w-full mb-12 border-b-4 @(IsUnhealthy ? "border-red-400" : "border-secondary-400") bg-white bg-opacity-10 py-4 px-6 shadow text-gray-200 rounded">
     <div class="flex max-w-full justify-between flex-wrap">
         <div class="flex items-center">
-            <h3 class="text-2xl flex-1 font-semibold mr-2 mb-2 @(IsUnhealthy ? "text-red-600" : "text-blue-600")">
+            <h3 class="text-2xl flex-1 font-semibold mr-2 mb-2 @(IsUnhealthy ? "text-red-400" : "text-secondary-400")">
                 @Service.Name
             </h3>
             @if (!Service.DeploymentInProgress && IsUnhealthy)
@@ -14,29 +14,15 @@
             }
             @if (Service.DeploymentInProgress)
             {
-                <Badge Colour="@BadgeColour.Teal">Deploying</Badge>
+                <Badge Colour="@BadgeColour.Secondary">Deploying</Badge>
             }
         </div>
-        <div class="flex">
-            <div class="mr-6">
-                @(PodMetrics.DesiredPods != UpToDateRunningPods ? $"{UpToDateRunningPods} / {PodMetrics.DesiredPods}" : UpToDateRunningPods.ToString())
-                pod@(UpToDateRunningPods == 1 ? "" : "s")
-                ready
-            </div>
-            <div>
-                Restart
-            </div>
-        </div>
-    </div>
-    <div class="text-gray-700">
-        <div class="text-sm">
+        <div class="flex justify-center items-center">
             @if (Service.IngressUrl != null)
             {
-                <div>Hosted at <a class="hover:text-blue-600" href="@Service.IngressUrl" target="_blank">@Service.IngressUrl</a>. </div>
+                <a class="link link-grey mr-8" href="@Service.IngressUrl" target="_blank">Link to service</a>
             }
-            <div>
-                Other Clud services can access at @Service.InternalHostname.
-            </div>
+            <button class="link link-grey">Restart</button> @* TODO make this do something *@
         </div>
     </div>
     <div class="overflow-auto">
@@ -45,13 +31,13 @@
             @foreach (var pod in Service.Pods)
             {
                 <tr>
-                    <td class="pr-2 py-5">
+                    <td class="pr-12 py-5">
                         <span class="pr-2 font-semibold">
                             @pod.Name
                         </span>
                         <Badge Colour="@PodStatusBadgeColour(pod)">@pod.Status</Badge>
                     </td>
-                    <td>
+                    <td class="pr-12">
                         <div class="text-sm">
                             Running image @pod.Image
                             @if (pod.Image != Service.ImageName)
@@ -65,8 +51,8 @@
                             Created @pod.CreationDate.ToDateTimeOffset().Humanize()
                         </div>
                     </td>
-                    <td>
-                        Logs
+                    <td class="flex flex-row h-full items-center justify-end py-5">
+                        <button class="flex hover:text-secondary-100 items-center text-gray-300 uppercase tracking-widest text-sm">Pod Logs</button> @* TODO make this do something *@
                     </td>
                 </tr>
             }
@@ -86,8 +72,8 @@
 
     public BadgeColour PodStatusBadgeColour(ApplicationResponse.Types.Pod pod) =>
         pod.Status switch {
-            "Running" => BadgeColour.Green,
-            "Pending" => BadgeColour.Teal,
+            "Running" => BadgeColour.Secondary,
+            "Pending" => BadgeColour.Primary,
             _ => BadgeColour.Red,
         };
 

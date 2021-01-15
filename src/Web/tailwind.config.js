@@ -8,7 +8,7 @@ module.exports = {
           current: 'currentColor',
           black: colors.black,
           white: colors.white,
-          gray: colors.blueGray,
+          gray: colors.trueGray,
           red: colors.red,
           yellow: colors.amber,
           green: colors.emerald,
@@ -18,6 +18,9 @@ module.exports = {
           purple: colors.violet,
           pink: colors.pink,
           orange: colors.orange,
+
+          primary: colors.teal,
+          secondary: colors.purple,
         }
     },
     variants: {

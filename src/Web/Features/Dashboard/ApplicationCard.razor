@@ -3,25 +3,25 @@
 @using Microsoft.Extensions.Options
 @inject IOptions<CludOptions> CludOptions
 
-<a href="/apps/@Application.Name" class="group w-full m-4 border-b-4 border-blue-500 bg-gray-100 py-4 px-6 shadow-md text-gray-800 hover:bg-blue-700 hover:text-gray-100 hover:border-blue-100 flex">
+<a href="/apps/@Application.Name" class="group w-full m-4 border-b-4 border-secondary-400 bg-white bg-opacity-10 hover:bg-opacity-100 py-4 px-6 shadow-md text-gray-200 hover:bg-secondary-800 hover:text-secondary-100 hover:border-secondary-100 flex rounded">
     <div class="flex-1 max-w-full">
         <div class="text-2xl flex">
-            <span class="font-semibold">@Application.Name</span>
+            <span class="font-semibold text-secondary-300 group-hover:text-secondary-50">@Application.Name</span>
             @if (@Application.HasEntryPoint)
             {
-                <span class="text-gray-600 group-hover:text-blue-200 truncate">.@CludOptions.Value.BaseHostname</span>
+                <span class="text-gray-300 group-hover:text-secondary-200 truncate">.@CludOptions.Value.BaseHostname</span>
             }
         </div>
         @if (!string.IsNullOrWhiteSpace(Application.Description))
         {
-            <div class="text-gray-800 group-hover:text-blue-200 pt-2">@Application.Description</div>
+            <div class="pt-2">@Application.Description</div>
         }
     </div>
     <div class="flex-col items-end justify-around hidden md:flex">
-        <div class="text-gray-600 group-hover:text-blue-200" title="@Application.LastUpdatedTime.ToDateTimeOffset().ToString("f")">Deployed @Application.LastUpdatedTime.ToDateTimeOffset().Humanize()</div>
+        <div class="text-gray-300 group-hover:text-secondary-200" title="@Application.LastUpdatedTime.ToDateTimeOffset().ToString("f")">Deployed @Application.LastUpdatedTime.ToDateTimeOffset().Humanize()</div>
         @if (!string.IsNullOrWhiteSpace(Application.Owner))
         {
-            <div class="text-gray-600 group-hover:text-blue-200">@Application.Owner</div>
+            <div class="text-gray-300 group-hover:text-secondary-100">@Application.Owner</div>
         }
     </div>
 </a>

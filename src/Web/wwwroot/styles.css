@@ -8,6 +8,20 @@ th {
 
 @import "tailwindcss/utilities";
 
+@layer components {
+  .link {
+    @apply uppercase tracking-widest text-sm;
+  }
+
+  .link-secondary {
+    @apply text-secondary-300 hover:text-secondary-100
+  }
+
+  .link-grey {
+    @apply text-gray-300 hover:text-secondary-100
+  }
+}
+
 #blazor-error-ui {
   background: lightyellow;
   bottom: 0;

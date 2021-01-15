@@ -1,8 +1,9 @@
 @page "/apps/{applicationName}"
 @using Clud.Grpc
+@using System.Threading
 @inject Applications.ApplicationsClient ApplicationsClient
 
-<div class="container-md mx-auto p-4">
+<div class="container-sm mx-auto p-4">
     @if (application != null)
     {
         <ApplicationHeader Application="@application"/>
@@ -30,9 +31,9 @@
 
             <div class="flex flex-wrap-reverse justify-between items-center pt-8 mx-2">
                 <div class="flex flex-wrap">
-                    <a href="@application.IngressUrl" target="_blank" class="text-gray-200 hover:text-blue-500 font-semibold">Link to app</a>
-                    <button class="text-gray-200 hover:text-blue-500 font-semibold ml-6">Config file</button> @* TODO make this do something *@
-                    <button class="text-gray-200 hover:text-blue-500 font-semibold ml-6">Delete</button> @* TODO make this do something *@
+                    <a href="@application.IngressUrl" target="_blank" class="link link-grey">Link to app</a>
+                    <button class="link link-grey ml-8">Config file</button> @* TODO make this do something *@
+                    <button class="link text-gray-300 hover:text-red-300 ml-8">Delete</button> @* TODO make this do something *@
                 </div>
             </div>
         </div>
@@ -56,9 +57,22 @@
 
     private ApplicationResponse application;
 
-    protected override async Task OnInitializedAsync()
+    private Timer? pollingTimer;
+
+    public void Dispose()
+    {
+        pollingTimer?.Dispose();
+    }
+
+    protected override void OnInitialized()
+    {
+        pollingTimer = new Timer(async state => await InvokeAsync(FetchApplication), state: null, dueTime: 0, period: 10_000);
+    }
+
+    private async Task FetchApplication()
     {
         application = await ApplicationsClient.GetApplicationAsync(new ApplicationQuery { Name = ApplicationName });
+        StateHasChanged();
     }
 
 }
