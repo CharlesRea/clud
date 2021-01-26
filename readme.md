@@ -7,7 +7,7 @@ By [Alex Potter](https://github.com/AlexJPotter) and [CharlesRea](https://github
 ## Technologies used:
 * .NET
 * GRPC
-* Blazor
+* React
 * Kubernetes
 
 ## Development environment setup
@@ -28,6 +28,8 @@ Have a readthrough of the [Design Spec](./docs/01_DesignSpec.md) to understand t
 * [.NET Core 5.0 SDK](https://dotnet.microsoft.com/download)
 * [Node 14+](https://nodejs.org/en/)
 * [Yarn v1](https://classic.yarnpkg.com/lang/en/)
+* [protoc](https://github.com/protocolbuffers/protobuf/releases) - ensure it's added to your PATH - `choco install protoc`
+* [protoc-gen-grpc-web](https://github.com/grpc/grpc-web/releases) - ensure it's added to your PATH
 
 ### Infrastructure setup
 * Setup a self-signed certificate (used for HTTPS), and add it as a Kubernetes secret (On Windows, you might need to run the following commands in Git Bash or equivalent)
@@ -58,9 +60,9 @@ Have a readthrough of the [Design Spec](./docs/01_DesignSpec.md) to understand t
 * Run `./Build.ps1 RebuildDatabase`. This will recreate the database from scratch, wiping any existing schema & data.
 
 ### Running the Clud server
-* In `src/Web`, run `yarn watch` to compile the CSS
-* In `src/Api`, `dotnet watch run` to run the API and Blazor server
-* Open https://localhost:5001/. You should see the Clud frontend
+* In `src/Api/client`, run `yarn start` to run the React dev server
+* In `src/Api`, `dotnet watch run` to run the API
+* Open http://localhost:3000/. You should see the Clud frontend
 
 ### Deploy through the CLI
 To run the CLI, in `src/Cli` run `dotnet run -- <arguments>`. 

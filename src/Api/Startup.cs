@@ -28,6 +28,16 @@ namespace Clud.Api
 
             services.AddGrpc();
 
+            services.AddSpaStaticFiles(configuration => { configuration.RootPath = "client/build"; });
+
+            services.AddCors(options =>
+                options.AddPolicy("LocalhostPolicy", builder => builder
+                    .WithOrigins("http://localhost:3000")
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                )
+            );
+
             services.AddDbContext<DataContext>(
                 options => options.UseNpgsql(
                     Configuration.GetValue<string>("Clud:ConnectionString"),
@@ -54,10 +64,12 @@ namespace Clud.Api
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseBlazorFrameworkFiles();
             app.UseStaticFiles();
+            app.UseSpaStaticFiles();
 
             app.UseRouting();
+
+            app.UseCors("LocalhostPolicy");
 
             app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
 
@@ -66,7 +78,16 @@ namespace Clud.Api
                 endpoints.MapGrpcService<DeploymentsService>();
                 endpoints.MapGrpcService<ApplicationService>();
                 endpoints.MapControllers();
-                endpoints.MapFallbackToFile("index.html");
+            });
+
+            app.UseSpa(spa =>
+            {
+                spa.Options.SourcePath = "client";
+
+                if (env.IsDevelopment())
+                {
+                    spa.UseProxyToSpaDevelopmentServer("http://localhost:3000");
+                }
             });
         }
     }
