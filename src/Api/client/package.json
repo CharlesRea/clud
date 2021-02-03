@@ -5,6 +5,7 @@
   "dependencies": {
     "@emotion/react": "11.1.4",
     "@emotion/styled": "11.0.0",
+    "@tailwindcss/postcss7-compat": "2.0.2",
     "@testing-library/jest-dom": "^5.11.4",
     "@testing-library/react": "^11.1.0",
     "@testing-library/user-event": "^12.1.10",
@@ -12,14 +13,18 @@
     "@types/node": "^12.0.0",
     "@types/react": "^16.9.53",
     "@types/react-dom": "^16.9.8",
+    "autoprefixer": "9",
     "grpc-web": "1.2.1",
+    "postcss": "7",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-scripts": "4.0.1",
+    "tailwindcss": "npm:@tailwindcss/postcss7-compat",
     "typescript": "^4.0.3",
     "web-vitals": "^0.2.4"
   },
   "devDependencies": {
+    "@craco/craco": "6.1.0",
     "@types/google-protobuf": "3.7.4",
     "eslint-config-prettier": "7.2.0",
     "eslint-plugin-import": "2.22.1",
@@ -32,9 +37,9 @@
     "prettier": "2.2.1"
   },
   "scripts": {
-    "start": "yarn protoc && react-scripts start",
-    "build": "yarn protoc && react-scripts build",
-    "test": "react-scripts test",
+    "start": "yarn protoc && craco start",
+    "build": "yarn protoc && craco build",
+    "test": "craco test",
     "protoc": "mkdirp ./src/grpc && protoc -I ..\\..\\protos\\ clud.proto --js_out=import_style=commonjs:./src/grpc --grpc-web_out=import_style=typescript,mode=grpcwebtext:./src/grpc",
     "prettier": "prettier --config .prettierrc --write \"src/**/*.{js,ts,tsx}\"",
     "prettier:diff": "prettier --config .prettierrc --list-different \"src/**/*.{js,ts,tsx}\"",

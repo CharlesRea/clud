@@ -74,7 +74,7 @@ export const App = () => {
   }, [fetchApplications]);
 
   return (
-    <div>
+    <div className="p-8">
       {applications.isLoading && <div>Loading</div>}
       {applications.error && (
         <div>
