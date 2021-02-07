@@ -76,7 +76,8 @@
           "react/react-in-jsx-scope": "off",
           "simple-import-sort/imports": "warn",
           "import/order": "off",
-          "import/no-unresolved": "off"
+          "import/no-unresolved": "off",
+          "react/display-name": "off"
         }
       }
     ]
