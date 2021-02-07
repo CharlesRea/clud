@@ -1,8 +1,11 @@
 import React, { useEffect } from 'react';
+import styled from 'styled-components/macro';
 
-import { ListApplicationsQuery } from '../grpc/clud_pb';
-import { ApplicationsClient } from '../grpc/CludServiceClientPb';
-import { matchGrpc, useGrpc } from '../utils/useGrpc';
+import { ListApplicationsQuery } from '../../grpc/clud_pb';
+import { ApplicationsClient } from '../../grpc/CludServiceClientPb';
+import { spacing8 } from '../../styles/spacing';
+import { matchGrpc, useGrpc } from '../../utils/useGrpc';
+import { ApplicationCard } from './ApplicationCard';
 
 // TODO parameterise this
 const applicationsClient = new ApplicationsClient(`https://localhost:5001`);
@@ -24,7 +27,7 @@ export const Applications = () => {
         Success: (applications) => (
           <div>
             {applications.response.getApplicationsList().map((app) => (
-              <div key={app.getName()}>{app.getName()}</div>
+              <StyledApplicationCard key={app.getName()} application={app} />
             ))}
           </div>
         ),
@@ -37,3 +40,7 @@ export const Applications = () => {
     </div>
   );
 };
+
+const StyledApplicationCard = styled(ApplicationCard)`
+  margin-bottom: ${spacing8};
+`;

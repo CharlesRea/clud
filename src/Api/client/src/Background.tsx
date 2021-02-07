@@ -1,15 +1,15 @@
 import React from 'react';
-import styled from 'styled-components';
+import styled from 'styled-components/macro';
 
 export const Background = () => (
   <>
     <Clouds />
-    <svg width="0">
+    <CloudSvg width="0">
       <filter id="filter">
         <feTurbulence type="fractalNoise" baseFrequency=".01" numOctaves="10" />
         <feDisplacementMap in="SourceGraphic" scale="240" />
       </filter>
-    </svg>
+    </CloudSvg>
   </>
 );
 
@@ -70,4 +70,8 @@ const Clouds = styled.div`
     rgb(240, 255, 243) 55vw 19vh 22vmin 16vmin, rgb(219, 241, 245) 99vw 88vh 20vmin 4vmin,
     rgb(144, 211, 244) 86vw 85vh 29vmin 16vmin, rgb(240, 255, 243) 26vw 38vh 39vmin 20vmin,
     rgb(144, 211, 244) 4vw 44vh 21vmin 13vmin, rgb(144, 211, 244) 95vw 92vh 29vmin 11vmin;
+`;
+
+const CloudSvg = styled.svg`
+  position: absolute;
 `;

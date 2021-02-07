@@ -22,7 +22,20 @@ module.exports = {
         'simple-import-sort/imports': 'warn',
         'import/order': 'off',
         'import/no-unresolved': 'off',
+        'import/named': 'off',
         'react/display-name': 'off',
+        'no-restricted-imports': [
+          'error',
+          {
+            paths: [
+              {
+                name: 'styled-components',
+                message: 'Please import from styled-components/macro.',
+              },
+            ],
+            patterns: ['!styled-components/macro'],
+          },
+        ],
       },
     },
   ],

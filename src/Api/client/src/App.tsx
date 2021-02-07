@@ -1,11 +1,22 @@
 import React from 'react';
+import styled from 'styled-components/macro';
 
 import { Background } from './Background';
-import { Applications } from './features/Applications';
+import { Home } from './features/home/Home';
+import { GlobalStyles } from './styles/GlobalStyles';
 
 export const App = () => (
   <>
+    <GlobalStyles />
     <Background />
-    <Applications />
+    <AppContainer>
+      <Home />
+    </AppContainer>
   </>
 );
+
+const AppContainer = styled.div`
+  position: absolute;
+  min-width: 100vw;
+  min-height: 100vh;
+`;
