@@ -2,16 +2,24 @@ import { createGlobalStyle } from 'styled-components/macro';
 import normalize from 'styled-normalize';
 
 import {
+  neutral050,
   neutral100,
   neutral900,
-  teal100,
-  teal200,
-  teal300,
-  teal400,
-  teal500,
-  teal700,
+  orange100,
+  orange200,
+  orange300,
+  orange400,
+  orange500,
+  orange700,
 } from './colours';
-import { fontBase, fontFamily, monospacedFontFamily, normalFontWeight } from './fonts';
+import {
+  fontBase,
+  fontFamily,
+  lineHeightRegular,
+  lineHeightTight,
+  monospacedFontFamily,
+  regularWeight,
+} from './fonts';
 
 export const GlobalStyles = createGlobalStyle`
   ${normalize}
@@ -25,17 +33,15 @@ export const GlobalStyles = createGlobalStyle`
     margin: 0;
     font-family: ${fontFamily};
     font-size: ${fontBase};
-    color: ${neutral100};
-    font-weight: ${normalFontWeight};
-    line-height: 1.5;
+    color: ${neutral050};
+    font-weight: ${regularWeight};
+    line-height: ${lineHeightRegular};
   }
   
   code, pre {
     font-family: ${monospacedFontFamily};
   }
   
-  // Remove default margins from user-agent stylesheet - you should be explicitly using the
-  // spacing scale values where margins are required
   blockquote,
   dl,
   dd,
@@ -52,9 +58,6 @@ export const GlobalStyles = createGlobalStyle`
     margin: 0;
   }
   
-  // Remove default heading styles - you should be using the font size scale values, and making an
-  // explicit decision on heading sizes based on the context they appear in, not on the header's
-  // semantic level
   h1,
   h2,
   h3,
@@ -63,6 +66,8 @@ export const GlobalStyles = createGlobalStyle`
   h6 {
     font-size: inherit;
     font-weight: inherit;
+    
+    line-height: ${lineHeightTight};
   }
   
   ol,
@@ -74,10 +79,5 @@ export const GlobalStyles = createGlobalStyle`
   
   a {
     text-decoration: none;
-    color: ${teal300};
-    
-    &:hover {
-      color: ${teal200};
-    }
   }
 `;

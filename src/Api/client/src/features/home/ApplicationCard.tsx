@@ -1,3 +1,4 @@
+import { formatDistanceToNow } from 'date-fns';
 import styled from 'styled-components/macro';
 
 import { ListApplicationsResponse } from '../../grpc/clud_pb';
@@ -9,10 +10,12 @@ import {
   neutral700,
   neutral800,
   neutral900,
+  orange300,
 } from '../../styles/colours';
 import { font2xl, semibold } from '../../styles/fonts';
-import { shadowLg, shadowMd, shadowSm } from '../../styles/shadows';
-import { spacing2, spacing8 } from '../../styles/spacing';
+import { shadowInner, shadowLg, shadowMd, shadowSm } from '../../styles/shadows';
+import { spacing2, spacing4, spacing6, spacing8 } from '../../styles/spacing';
+import { assertNotNull } from '../../utils/assertNotNull';
 
 type ApplicationCardProps = {
   application: ListApplicationsResponse.Application;
@@ -23,30 +26,42 @@ const baseHostname = 'clud.ghyston.com';
 
 export const ApplicationCard = ({ application, className }: ApplicationCardProps) => (
   <Card className={className}>
-    <Url>
-      <ApplicationName>{application.getName()}</ApplicationName>
-      {application.getHasentrypoint() && <BaseHostname>.{baseHostname}</BaseHostname>}
-    </Url>
-    {application.getDescription() && <Description>{application.getDescription()}</Description>}
+    <Header>
+      <Url>
+        <ApplicationName>{application.getName()}</ApplicationName>
+        {application.getHasentrypoint() && <BaseHostname>.{baseHostname}</BaseHostname>}
+      </Url>
+      {application.getDescription() && <Description>{application.getDescription()}</Description>}
+    </Header>
+    <Metadata>
+      {application.getLastupdatedtime() && (
+        <DeployDate>
+          Updated {formatDistanceToNow(assertNotNull(application.getLastupdatedtime()).toDate())}{' '}
+          ago
+        </DeployDate>
+      )}
+      {application.getOwner() && <Owner>{application.getOwner()}</Owner>}
+    </Metadata>
   </Card>
 );
 
-const Card = styled.div`
-  background-color: rgba(255, 255, 255, 0.8);
-  //backdrop-filter: blur(10px);
-  padding: ${spacing8};
-  box-shadow: ${shadowLg};
-  border: 1px solid rgba(255, 255, 255, 0.1);
+const Card = styled.a`
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: ${spacing6};
+  border: 1px solid rgba(255, 255, 255, 0.2);
   width: 100%;
   cursor: pointer;
-  color: ${neutral900};
-  //border-radius: 5px;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.1);
     color: ${neutral100};
   }
 `;
+
+const Header = styled.div``;
 
 const Url = styled.h3`
   font-size: ${font2xl};
@@ -55,12 +70,25 @@ const Url = styled.h3`
 
 const ApplicationName = styled.span`
   font-weight: ${semibold};
+  color: ${orange300};
 `;
 
 const BaseHostname = styled.span`
-  color: ${neutral800};
+  color: ${neutral200};
 `;
 
 const Description = styled.div`
-  padding-top: ${spacing2};
+  padding-top: ${spacing4};
 `;
+
+const Metadata = styled.div`
+  color: ${neutral200};
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+`;
+
+const DeployDate = styled.div``;
+
+const Owner = styled.div``;

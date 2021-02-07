@@ -4,18 +4,18 @@ import styled from 'styled-components/macro';
 import { ListApplicationsQuery } from '../../grpc/clud_pb';
 import { ApplicationsClient } from '../../grpc/CludServiceClientPb';
 import { borderRadius2 } from '../../styles/borders';
+import { orange100, orange300, teal100, teal300 } from '../../styles/colours';
 import {
   bold,
   font4xl,
   fontSmall,
   fontXl,
+  letterSpacingWide,
   monospacedFontFamily,
   semibold,
 } from '../../styles/fonts';
-import { shadowSm } from '../../styles/shadows';
-import { spacing4, spacing6, spacing8, spacing12 } from '../../styles/spacing';
-import { matchGrpc, useGrpc } from '../../utils/useGrpc';
-import { ApplicationCard } from './ApplicationCard';
+import { shadowLg, shadowSm } from '../../styles/shadows';
+import { spacing1, spacing2, spacing6, spacing8, spacing12, spacing20 } from '../../styles/spacing';
 import { Applications } from './Applications';
 import { ReactComponent as Logo } from './logo.svg';
 
@@ -40,7 +40,7 @@ const Container = styled.div`
 
 const InnerContainer = styled.div`
   margin-top: ${spacing8};
-  background-color: rgba(0, 20, 40, 0.15);
+  background-color: rgba(0, 20, 40, 0.1);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   padding: ${spacing12};
@@ -51,14 +51,13 @@ const InnerContainer = styled.div`
 
 const Header = () => (
   <HeaderContainer>
-    <a href="/">
+    <LogoLink href="/">
       <StyledLogo />
       <CludName>clud</CludName>
-    </a>
+    </LogoLink>
     <SubTitle>The Ghyston cloud</SubTitle>
     <Description>
-      Easy deployment for your apps and side projects by running{' '}
-      <code className="font-mono font-bold tracking-tight text-gray-100">clud deploy</code>.
+      Easy deployment for your apps and side projects by running <Code>clud deploy</Code>.
       Out-the-box support for common frameworks & databases, or custom deployments using a
       Dockerfile.
     </Description>
@@ -86,6 +85,13 @@ const HeaderContainer = styled.div`
   margin-bottom: ${spacing12};
 `;
 
+const LogoLink = styled.a`
+  color: ${teal300};
+  &:hover {
+    color: ${teal100};
+  }
+`;
+
 const StyledLogo = styled(Logo)`
   width: 120px;
   height: 120px;
@@ -97,6 +103,8 @@ const CludName = styled.h1`
   text-align: center;
   font-family: ${monospacedFontFamily};
   line-height: 1;
+  margin-top: -${spacing2};
+  margin-bottom: ${spacing1};
 `;
 
 const SubTitle = styled.h2`
@@ -106,10 +114,16 @@ const SubTitle = styled.h2`
 `;
 
 const Description = styled.p`
-  max-width: 30em;
+  max-width: 35em;
   text-align: center;
   margin-bottom: ${spacing6};
   font-size: ${fontXl};
+`;
+
+const Code = styled.code`
+  font-family: ${monospacedFontFamily};
+  font-weight: ${bold};
+  color: ${orange300};
 `;
 
 const Links = styled.div`
@@ -118,8 +132,16 @@ const Links = styled.div`
 `;
 
 const Link = styled.a`
-  &:not(:last-child) {
-    margin-right: ${spacing8};
+  text-transform: uppercase;
+  letter-spacing: ${letterSpacingWide};
+  font-weight: ${semibold};
+  color: ${orange300};
+
+  &:hover {
+    color: ${orange100};
   }
-  font-size: ${fontXl};
+
+  &:not(:last-child) {
+    margin-right: ${spacing20};
+  }
 `;

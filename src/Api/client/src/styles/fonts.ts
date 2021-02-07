@@ -9,17 +9,21 @@ export const font4xl = '36px';
 export const font5xl = '48px';
 export const font6xl = '64px';
 
-/*
- ReactRecipes-TODO-Styling: Change the font family to match your project's needs. This example is a
- very safe, generic, sans-serif font which is fine but has no personality.
-*/
 export const fontFamily =
   'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";';
 
 export const monospacedFontFamily =
   'Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;';
 
-export const fontWeightLight = 300;
-export const normalFontWeight = 400;
+export const light = 300;
+export const regularWeight = 400;
 export const semibold = 500;
 export const bold = 700;
+
+export const lineHeightNone = 1;
+export const lineHeightTight = 1.25;
+export const lineHeightSnug = 1.375;
+export const lineHeightRegular = 1.5;
+
+export const letterSpacingBase = '0';
+export const letterSpacingWide = '0.05em';
