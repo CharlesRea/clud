@@ -1,7 +1,16 @@
 import { createGlobalStyle } from 'styled-components/macro';
 import normalize from 'styled-normalize';
 
-import { neutral900, teal700 } from './colours';
+import {
+  neutral100,
+  neutral900,
+  teal100,
+  teal200,
+  teal300,
+  teal400,
+  teal500,
+  teal700,
+} from './colours';
 import { fontBase, fontFamily, monospacedFontFamily, normalFontWeight } from './fonts';
 
 export const GlobalStyles = createGlobalStyle`
@@ -16,7 +25,7 @@ export const GlobalStyles = createGlobalStyle`
     margin: 0;
     font-family: ${fontFamily};
     font-size: ${fontBase};
-    color: ${neutral900};
+    color: ${neutral100};
     font-weight: ${normalFontWeight};
     line-height: 1.5;
   }
@@ -65,10 +74,10 @@ export const GlobalStyles = createGlobalStyle`
   
   a {
     text-decoration: none;
-    color: ${neutral900};
+    color: ${teal300};
     
     &:hover {
-      color: ${teal700};
+      color: ${teal200};
     }
   }
 `;

@@ -3,7 +3,7 @@ import styled from 'styled-components/macro';
 
 import { ListApplicationsQuery } from '../../grpc/clud_pb';
 import { ApplicationsClient } from '../../grpc/CludServiceClientPb';
-import { spacing8 } from '../../styles/spacing';
+import { spacing8, spacing12 } from '../../styles/spacing';
 import { matchGrpc, useGrpc } from '../../utils/useGrpc';
 import { ApplicationCard } from './ApplicationCard';
 
@@ -42,5 +42,7 @@ export const Applications = () => {
 };
 
 const StyledApplicationCard = styled(ApplicationCard)`
-  margin-bottom: ${spacing8};
+  &:not(:last-child) {
+    margin-bottom: ${spacing12};
+  }
 `;

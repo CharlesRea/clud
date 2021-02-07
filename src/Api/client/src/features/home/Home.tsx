@@ -3,6 +3,7 @@ import styled from 'styled-components/macro';
 
 import { ListApplicationsQuery } from '../../grpc/clud_pb';
 import { ApplicationsClient } from '../../grpc/CludServiceClientPb';
+import { borderRadius2 } from '../../styles/borders';
 import {
   bold,
   font4xl,
@@ -11,6 +12,7 @@ import {
   monospacedFontFamily,
   semibold,
 } from '../../styles/fonts';
+import { shadowSm } from '../../styles/shadows';
 import { spacing4, spacing6, spacing8, spacing12 } from '../../styles/spacing';
 import { matchGrpc, useGrpc } from '../../utils/useGrpc';
 import { ApplicationCard } from './ApplicationCard';
@@ -19,8 +21,10 @@ import { ReactComponent as Logo } from './logo.svg';
 
 export const Home = () => (
   <Container>
-    <Header />
-    <Applications />
+    <InnerContainer>
+      <Header />
+      <Applications />
+    </InnerContainer>
   </Container>
 );
 
@@ -28,9 +32,21 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   max-width: 1800px;
   width: 100%;
   margin: auto;
+`;
+
+const InnerContainer = styled.div`
+  margin-top: ${spacing8};
+  background-color: rgba(0, 20, 40, 0.15);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: ${spacing12};
+  box-shadow: ${shadowSm};
+  width: 800px;
+  max-width: 100%;
 `;
 
 const Header = () => (
@@ -67,7 +83,6 @@ const HeaderContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: ${spacing4};
   margin-bottom: ${spacing12};
 `;
 
