@@ -13,25 +13,13 @@ export const Background = () => (
   </>
 );
 
-// Light
-// const colour1 = 'hsl(210,77%,61%)';
-// const colour2 = 'hsl(205,82%,90%)';
-// const colour3 = 'hsl(200,82%,66%)';
-// const colour4 = 'hsl(200,82%,70%)';
-//
-
-// Dark
-// const colour1 = 'hsl(210,77%,41%)';
-// const colour2 = 'hsl(205,82%,30%)';
-// const colour3 = 'hsl(200,82%,36%)';
-// const colour4 = 'hsl(200,82%,20%)';
-
 const colour1 = 'hsla(210,77%,21%, 0.1)';
 const colour2 = 'hsl(205,82%,30%)';
 const colour3 = 'hsl(200,82%,36%)';
 const colour4 = 'hsl(200,82%,30%)';
 
 const Clouds = styled.div`
+  position: absolute;
   overflow: hidden;
   width: 1px;
   height: 1px;

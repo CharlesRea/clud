@@ -3,6 +3,7 @@ import styled from 'styled-components/macro';
 
 import { ListApplicationsQuery } from '../../grpc/clud_pb';
 import { ApplicationsClient } from '../../grpc/CludServiceClientPb';
+import { PageContent } from '../../shared/PageContent';
 import { borderRadius2 } from '../../styles/borders';
 import { orange100, orange300, teal100, teal300 } from '../../styles/colours';
 import {
@@ -28,15 +29,7 @@ export const Home = () => (
   </Container>
 );
 
-const Container = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  max-width: 1800px;
-  width: 100%;
-  margin: auto;
-`;
+const Container = styled(PageContent)``;
 
 const InnerContainer = styled.div`
   margin-top: ${spacing8};
@@ -57,23 +50,23 @@ const Header = () => (
     </LogoLink>
     <SubTitle>The Ghyston cloud</SubTitle>
     <Description>
-      Easy deployment for your apps and side projects by running <Code>clud deploy</Code>.
-      Out-the-box support for common frameworks & databases, or custom deployments using a
+      Easy deployment for your apps and side projects: just run <Code>clud deploy</Code>.
+      Out-of-the-box support for common frameworks & databases, or custom deployments using a
       Dockerfile.
     </Description>
     <Links>
-      <Link
+      <HeaderLink
         href="https://github.com/CharlesRea/clud"
         className="flex items-center link link-secondary"
       >
         Docs
-      </Link>
-      <Link
+      </HeaderLink>
+      <HeaderLink
         href="https://github.com/CharlesRea/clud"
         className="flex items-center link link-secondary ml-8"
       >
         Github
-      </Link>
+      </HeaderLink>
     </Links>
   </HeaderContainer>
 );
@@ -131,7 +124,7 @@ const Links = styled.div`
   flex-direction: row;
 `;
 
-const Link = styled.a`
+const HeaderLink = styled.a`
   text-transform: uppercase;
   letter-spacing: ${letterSpacingWide};
   font-weight: ${semibold};

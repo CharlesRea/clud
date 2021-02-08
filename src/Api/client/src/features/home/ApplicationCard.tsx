@@ -1,4 +1,5 @@
 import { formatDistanceToNow } from 'date-fns';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components/macro';
 
 import { ListApplicationsResponse } from '../../grpc/clud_pb';
@@ -10,6 +11,7 @@ import {
   neutral700,
   neutral800,
   neutral900,
+  orange200,
   orange300,
 } from '../../styles/colours';
 import { font2xl, semibold } from '../../styles/fonts';
@@ -25,7 +27,7 @@ type ApplicationCardProps = {
 const baseHostname = 'clud.ghyston.com';
 
 export const ApplicationCard = ({ application, className }: ApplicationCardProps) => (
-  <Card className={className}>
+  <Card className={className} to={`/apps/${application.getName()}`}>
     <Header>
       <Url>
         <ApplicationName>{application.getName()}</ApplicationName>
@@ -45,7 +47,12 @@ export const ApplicationCard = ({ application, className }: ApplicationCardProps
   </Card>
 );
 
-const Card = styled.a`
+const ApplicationName = styled.span`
+  font-weight: ${semibold};
+  color: ${orange300};
+`;
+
+const Card = styled(Link)`
   background-color: rgba(255, 255, 255, 0.05);
   padding: ${spacing6};
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -57,7 +64,10 @@ const Card = styled.a`
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.1);
-    color: ${neutral100};
+
+    ${ApplicationName} {
+      color: ${orange200};
+    }
   }
 `;
 
@@ -66,11 +76,6 @@ const Header = styled.div``;
 const Url = styled.h3`
   font-size: ${font2xl};
   line-height: 1;
-`;
-
-const ApplicationName = styled.span`
-  font-weight: ${semibold};
-  color: ${orange300};
 `;
 
 const BaseHostname = styled.span`
