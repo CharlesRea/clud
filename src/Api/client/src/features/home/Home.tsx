@@ -3,6 +3,7 @@ import styled from 'styled-components/macro';
 
 import { ListApplicationsQuery } from '../../grpc/clud_pb';
 import { ApplicationsClient } from '../../grpc/CludServiceClientPb';
+import { ExternalLink } from '../../shared/Link';
 import { PageContent } from '../../shared/PageContent';
 import { borderRadius2 } from '../../styles/borders';
 import { orange100, orange300, teal100, teal300 } from '../../styles/colours';
@@ -124,16 +125,7 @@ const Links = styled.div`
   flex-direction: row;
 `;
 
-const HeaderLink = styled.a`
-  text-transform: uppercase;
-  letter-spacing: ${letterSpacingWide};
-  font-weight: ${semibold};
-  color: ${orange300};
-
-  &:hover {
-    color: ${orange100};
-  }
-
+const HeaderLink = styled(ExternalLink)`
   &:not(:last-child) {
     margin-right: ${spacing20};
   }

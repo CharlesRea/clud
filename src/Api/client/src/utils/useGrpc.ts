@@ -3,7 +3,7 @@ import { useCallback, useState } from 'react';
 
 import { match, Pattern } from './PatternMatching';
 
-type GrpcState<TResponse> =
+export type GrpcState<TResponse> =
   | { status: 'Empty'; response: null }
   | { status: 'Loading'; response: TResponse | null }
   | { status: 'Success'; response: TResponse }

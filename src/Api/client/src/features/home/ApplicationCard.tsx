@@ -2,6 +2,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components/macro';
 
+import { baseHostname } from '../../config';
 import { ListApplicationsResponse } from '../../grpc/clud_pb';
 import { borderRadius2 } from '../../styles/borders';
 import {
@@ -23,8 +24,6 @@ type ApplicationCardProps = {
   application: ListApplicationsResponse.Application;
   className?: string;
 };
-
-const baseHostname = 'clud.ghyston.com';
 
 export const ApplicationCard = ({ application, className }: ApplicationCardProps) => (
   <Card className={className} to={`/apps/${application.getName()}`}>

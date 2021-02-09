@@ -2,13 +2,11 @@ import React, { useEffect } from 'react';
 import styled from 'styled-components/macro';
 
 import { ListApplicationsQuery, ListApplicationsResponse } from '../../grpc/clud_pb';
-import { ApplicationsClient } from '../../grpc/CludServiceClientPb';
-import { spacing8, spacing12 } from '../../styles/spacing';
-import { matchGrpc, useGrpc } from '../../utils/useGrpc';
+import { GrpcResponse } from '../../shared/GrpcResponse';
+import { spacing12 } from '../../styles/spacing';
+import { applicationsClient } from '../../utils/grpc';
+import { useGrpc } from '../../utils/useGrpc';
 import { ApplicationCard } from './ApplicationCard';
-
-// TODO parameterise this
-const applicationsClient = new ApplicationsClient(`https://localhost:5001`);
 
 export const Applications = () => {
   const [applications, listApplications] = useGrpc(
@@ -20,18 +18,9 @@ export const Applications = () => {
   }, [listApplications]);
 
   return (
-    <div>
-      {matchGrpc(applications, {
-        Empty: () => <div>Empty</div>,
-        Loading: () => <div>Loading</div>,
-        Success: (applications) => <ApplicationsList applications={applications.response} />,
-        Error: (applications) => (
-          <div>
-            error: {applications.error.message}. Error code: {applications.error.code}
-          </div>
-        ),
-      })}
-    </div>
+    <GrpcResponse request={applications}>
+      {(applications) => <ApplicationsList applications={applications} />}
+    </GrpcResponse>
   );
 };
 
