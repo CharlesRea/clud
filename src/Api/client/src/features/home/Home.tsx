@@ -23,7 +23,7 @@ import { ReactComponent as Logo } from './logo.svg';
 export const Home = () => (
   <Container>
     <InnerContainer>
-      <Header />
+      <HomeHeader />
       <Applications />
     </InnerContainer>
   </Container>
@@ -42,7 +42,7 @@ const InnerContainer = styled.div`
   max-width: 100%;
 `;
 
-const Header = () => (
+export const HomeHeader = () => (
   <HeaderContainer>
     <LogoLink href="/">
       <StyledLogo />
@@ -107,7 +107,7 @@ const SubTitle = styled.h2`
 `;
 
 const Description = styled.p`
-  max-width: 35em;
+  max-width: 33em;
   text-align: center;
   margin-bottom: ${spacing6};
   font-size: ${fontXl};

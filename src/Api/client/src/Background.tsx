@@ -2,7 +2,7 @@ import React from 'react';
 import styled from 'styled-components/macro';
 
 export const Background = () => (
-  <>
+  <Container>
     <Clouds />
     <CloudSvg width="0">
       <filter id="filter">
@@ -10,8 +10,12 @@ export const Background = () => (
         <feDisplacementMap in="SourceGraphic" scale="240" />
       </filter>
     </CloudSvg>
-  </>
+  </Container>
 );
+
+const Container = styled.div`
+  position: fixed;
+`;
 
 const colour1 = 'hsla(210,77%,21%, 0.1)';
 const colour2 = 'hsl(205,82%,30%)';

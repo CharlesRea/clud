@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import styled from 'styled-components/macro';
 
-import { ListApplicationsQuery } from '../../grpc/clud_pb';
+import { ListApplicationsQuery, ListApplicationsResponse } from '../../grpc/clud_pb';
 import { ApplicationsClient } from '../../grpc/CludServiceClientPb';
 import { spacing8, spacing12 } from '../../styles/spacing';
 import { matchGrpc, useGrpc } from '../../utils/useGrpc';
@@ -24,13 +24,7 @@ export const Applications = () => {
       {matchGrpc(applications, {
         Empty: () => <div>Empty</div>,
         Loading: () => <div>Loading</div>,
-        Success: (applications) => (
-          <div>
-            {applications.response.getApplicationsList().map((app) => (
-              <StyledApplicationCard key={app.getName()} application={app} />
-            ))}
-          </div>
-        ),
+        Success: (applications) => <ApplicationsList applications={applications.response} />,
         Error: (applications) => (
           <div>
             error: {applications.error.message}. Error code: {applications.error.code}
@@ -40,6 +34,14 @@ export const Applications = () => {
     </div>
   );
 };
+
+export const ApplicationsList = ({ applications }: { applications: ListApplicationsResponse }) => (
+  <div>
+    {applications.getApplicationsList().map((app) => (
+      <StyledApplicationCard key={app.getName()} application={app} />
+    ))}
+  </div>
+);
 
 const StyledApplicationCard = styled(ApplicationCard)`
   &:not(:last-child) {
